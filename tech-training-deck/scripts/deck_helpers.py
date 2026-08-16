@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# -*- coding: utf-8 -*-
 """deck_helpers.py — 在模板上构建 deck 的通用积木,颜色/字体从 profile 来(非硬编)。
 
 build 脚本:
     import sys, os
-    sys.path.insert(0, "<slide-maker>/scripts")   # deckkit/anim 在这
+    sys.path.insert(0, find_slide_maker())          # deckkit/anim 在这(自动探测)
     sys.path.insert(0, "<tech-training-deck>/scripts")
     import deckkit as dk
     from deck_helpers import Deck, set_title, num_circle, chap, card, para, notes
@@ -14,6 +13,7 @@ build 脚本:
 tag、画模板语汇的渐变编号圆、画带半透明衬底的章节页(修深暖背景白字对比坑)、
 画卡片、写讲者备注。颜色都从传入的 Profile 来,不硬编 hex。
 """
+import os, sys
 from pptx.util import Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR

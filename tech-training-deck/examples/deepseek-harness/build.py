@@ -7,12 +7,11 @@ tech-training-deck skill 的 Stage 3 产物示例。复用 slide-maker 的 deckk
 跑通需:① 装好 slide-maker skill;② 把 TPL 改成你的 .pptx;③ profile.yaml 填好 semantic_contract。
 """
 import sys, os
-SLIDE_MAKER = os.path.expanduser(r"~/.claude/skills/slide-maker/scripts")
 HERE = os.path.dirname(os.path.abspath(__file__))   # examples/deepseek-harness/
-# tech-training-deck/scripts 在往上两级(../../scripts)
-SKILL_ROOT = os.path.dirname(os.path.dirname(HERE))
-sys.path.insert(0, SLIDE_MAKER)
-sys.path.insert(0, os.path.join(SKILL_ROOT, "scripts"))
+SKILL_ROOT = os.path.dirname(os.path.dirname(HERE))  # tech-training-deck/
+sys.path.insert(0, os.path.join(SKILL_ROOT, "scripts"))   # 本 skill 的 scripts(含 slide_maker_path/load_profile/deck_helpers)
+from slide_maker_path import find_slide_maker
+sys.path.insert(0, find_slide_maker())   # slide-maker 的 scripts(deckkit/anim,自动探测)
 import deckkit as dk
 from anim import Build
 from pptx.util import Pt

@@ -15,11 +15,12 @@ profile.yaml 来(非硬编),含一套完整的 deck 节奏(封面/目录/章节�
 依赖 slide-maker skill 的 deckkit/anim。
 """
 import sys, os
-# === 路径配置(改成你机器的) ===
-SLIDE_MAKER = os.path.expanduser(r"~/.claude/skills/slide-maker/scripts")
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, SLIDE_MAKER)
-sys.path.insert(0, os.path.join(os.path.dirname(HERE), "scripts"))   # tech-training-deck/scripts
+# tech-training-deck/scripts(本 skill 的 scripts):本文件在 templates/,往上一级是 skill 根
+SKILL_ROOT = os.path.dirname(HERE)
+sys.path.insert(0, os.path.join(SKILL_ROOT, "scripts"))
+from slide_maker_path import find_slide_maker
+sys.path.insert(0, find_slide_maker())   # slide-maker 的 scripts(deckkit/anim,自动探测)
 import deckkit as dk
 from anim import Build
 from pptx import Presentation

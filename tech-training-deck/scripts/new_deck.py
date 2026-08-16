@@ -19,11 +19,13 @@ Source of truth for the deck; re-run to rebuild identically.
 依赖 slide-maker skill 的 deckkit/anim(import 路径见下)。
 """
 import sys, os
-# --- 路径:改成你机器上 slide-maker skill 的 scripts 目录 ---
-SLIDE_MAKER = os.path.expanduser(r"~/.claude/skills/slide-maker/scripts")
 HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, SLIDE_MAKER)
-sys.path.insert(0, os.path.join(HERE, "..", "scripts"))   # tech-training-deck 的 scripts
+# === 改成你机器上 tech-training-deck skill 的 scripts 目录 ===
+# (装了本 skill后,通常是 ~/.claude/skills/tech-training-deck/scripts 或 ~/.agents/skills/tech-training-deck/scripts)
+SKILL_SCRIPTS = r"<改成 tech-training-deck skill 的 scripts 目录>"
+sys.path.insert(0, SKILL_SCRIPTS)
+from slide_maker_path import find_slide_maker
+sys.path.insert(0, find_slide_maker())   # slide-maker 的 scripts(deckkit/anim,自动探测)
 import deckkit as dk
 from anim import Build
 from pptx import Presentation
