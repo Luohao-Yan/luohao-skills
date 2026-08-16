@@ -117,6 +117,29 @@ text sits on a controlled dark band. `deck_helpers.chap` does this; adjust the
 backing alpha/geometry per template. If a divider looks empty after build, this is
 the first thing to check — it's a contrast problem, not a missing-content problem.
 
+## The bottom_callout + content overlap fix (a real failure mode)
+
+`dk.bottom_callout(x, w, label, body, footer_gap=…)` **measures its own height from
+the body text and grows upward from above the footer** — it returns its top y. A long
+body (two wrapped lines) makes it tall, so its top rises and **collides with the
+content above** (numbered cards, chip rows) that you placed with a hard-coded
+`bottom`. The failure is silent at build (the cards don't know the callout's top), so
+`lint_layout`'s `TEXT_OVERLAP` critical is your only alarm.
+
+Two safe fixes (use either, often both):
+1. **Keep the on-slide body short** — move the long sentence to speaker notes; the
+   callout body should be one line. This is the cheapest fix and matches "sentences in
+   notes, phrases on the slide."
+2. **Reserve enough bottom for the callout** — set the content block's `bottom` so the
+   content's lowest edge sits above where a callout's top would land (~6.3in on a 7.5in
+   slide with the default footer_gap). For a 4-row numbered block, `bottom≈1.25in`
+   leaves room; `bottom≈0.95in` is too tight and will overlap when the body wraps.
+
+Do **not** shrink the content block so much that its own text overlaps (a too-tall
+`bottom` compresses cards and the card's title/description text overlap each other —
+also a `TEXT_OVERLAP`). The content block needs its real text height; reserve the
+callout room by shortening the body, not by crushing the cards.
+
 ## What Stage 3 does NOT do
 - Re-investigate (Stage 1) or re-structure the argument (Stage 2) — it projects the
   already-verified doc onto slides.

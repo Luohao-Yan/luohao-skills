@@ -84,7 +84,7 @@ def build():
     # -------- 4. 内容页范例 (content layout, 4-card) --------
     s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")])
     set_title(s, "<断言式标题:结论即标题>", D.anchor)
-    cols = dk.columns(4, slide=s, top=1.35, bottom=0.95, margin=0.5, gap=0.28)
+    cols = dk.columns(4, slide=s, top=1.35, bottom=1.15, margin=0.5, gap=0.28)
     data = [("<名1>","<归属1>","<形态1>","<要点1>", D.anchor),
             ("<名2>","<归属2>","<形态2>","<要点2>", D.comparator)]
     for (name,owner,form,feat,col),c in zip(data*2, cols):

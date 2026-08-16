@@ -74,7 +74,7 @@ def build():
 
     # 4 四产品归属表
     s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")]); set_title(s, "先纠偏:四个产品,四个归属", D.anchor)
-    cols = dk.columns(4, slide=s, top=1.35, bottom=0.95, margin=0.5, gap=0.28)
+    cols = dk.columns(4, slide=s, top=1.35, bottom=1.15, margin=0.5, gap=0.28)
     data = [("DeepSeek Harness","DeepSeek 官方","开源 Agent 框架","编程底座\n不含办公",D.anchor),
             ("WorkBuddy","腾讯·非DeepSeek","桌面工作台","编程强\n办公靠技能",D.comparator),
             ("WPS 灵犀","金山 WPS","AI 办公智能体","编程+办公\n都在壳里",DEEP),
@@ -172,7 +172,7 @@ def build():
     # 11 战略四步
     s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")]); set_title(s, "战略:用『动手层』标准化,反向锁定『模型层』", D.anchor)
     steps = [("默认带 DeepSeek","模型在 dsh 是可换插件,但默认体验/生态偏 DeepSeek"),("先选 harness 再选模型","团队建技术栈后迁移成本陡增;换模型只是一个插件"),("数据/反馈回流","更多 Agent 跑在 DeepSeek 上,真实数据反哺迭代"),("生态飞轮","Cordis + dsh-plugin 话题;24h 已 288 个插件仓")]
-    rows = dk.rows(4, slide=s, top=1.4, bottom=1.1, gap=0.24)
+    rows = dk.rows(4, slide=s, top=1.4, bottom=1.25, gap=0.22)
     b13 = Build(s)
     for i,((n,d),c) in enumerate(zip(steps, rows)):
         x,y,w,h = c
@@ -182,7 +182,7 @@ def build():
             dk.text(s, x+1.0, y+0.12, w-1.2, 0.35, [[(n,15,D.anchor,True,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE, wrap=False)
             dk.text(s, x+1.0, y+0.12, w-1.2, h-0.24, [[("　",1,WHITE,False,False),(d,14,INK,False,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE, line_spacing=1.15)
     b13.apply(effect="fade")
-    dk.bottom_callout(s, 0.5, W_IN-1.0, "一句话", "谁定义 harness 标准,谁就定义模型被怎么用、用谁的。同时开源模型和 harness,用动手层标准化反向强化模型层粘性。", label_c=D.anchor, body_c=DARK)
+    dk.bottom_callout(s, 0.5, W_IN-1.0, "一句话", "谁定义 harness 标准,谁就定义模型被怎么用、用谁的——DeepSeek 同时开源模型与 harness,用动手层标准化反向锁定模型层。", label_c=D.anchor, body_c=DARK)
     notes(s, "四步:默认带DeepSeek/先选harness/数据回流/生态飞轮。谁定义harness谁定义模型分发。")
 
     # 12 dsh vs Pi 对比
