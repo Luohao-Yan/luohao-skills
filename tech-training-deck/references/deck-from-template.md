@@ -165,9 +165,14 @@ Two safe fixes (use either, often both):
    callout body should be one line. This is the cheapest fix and matches "sentences in
    notes, phrases on the slide."
 2. **Reserve enough bottom for the callout** — set the content block's `bottom` so the
-   content's lowest edge sits above where a callout's top would land (~6.3in on a 7.5in
-   slide with the default footer_gap). For a 4-row numbered block, `bottom≈1.25in`
-   leaves room; `bottom≈0.95in` is too tight and will overlap when the body wraps.
+   block's lowest edge (the **card box**, not just its text — the box has no text_frame
+   and won't trip `TEXT_OVERLAP`, so a box overhanging the callout is invisible to lint
+   until you eyeball the render) sits above the callout's top. With `bottom_callout_at(
+   …, bottom_y=7.07)`, the callout top is ~6.53, so the content block's box bottom must
+   be ≤6.25 (≥0.28in gap). That means `columns`/`rows` `bottom` ≥ ~1.25in on a 7.5in
+   slide. **`bottom≈0.75` or `0.95` is too tight** — the card box renders to 6.55–6.75
+   and overhangs the callout. Verify by measuring every shape's bottom (including
+   boxes), not just text shapes — a text-only check will miss box-on-callout overlaps.
 
 Do **not** shrink the content block so much that its own text overlaps (a too-tall
 `bottom` compresses cards and the card's title/description text overlap each other —

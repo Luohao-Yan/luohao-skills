@@ -93,7 +93,7 @@ def build():
 
     # 5 关键发现(深色页)
     s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("dark")]); set_title(s, "关键发现:WPS Comate 内嵌的就是 Pi", WHITE)
-    cols = dk.columns(2, slide=s, top=1.35, bottom=0.75, margin=0.5, gap=0.5)
+    cols = dk.columns(2, slide=s, top=1.35, bottom=1.3, margin=0.5, gap=0.5)
     x,y,w,h = cols[0]
     card(s, x, y, w, h, fill=RGBColor(0x2A,0x14,0x18), line=D.anchor, line_w=1.5)
     dk.text(s, x+0.3, y+0.25, w-0.6, 0.5, [[("本机实测", 13, D.comparator, True, False, dk.EAFONT)]], wrap=False)
@@ -115,7 +115,7 @@ def build():
     dk.text(s, 0.7, 1.5, 12, 1.2, [[("Agent",40,D.anchor,True,False,dk.FONT),(" = ",32,DARK,True,False,dk.FONT),("模型",34,D.neutral,True,False,dk.EAFONT),(" + ",30,DARK,True,False,dk.FONT),("Harness",40,D.comparator,True,False,dk.FONT)]], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
     dk.text(s, 0.7, 2.7, 12, 0.5, [[("模型负责『想』,Harness 负责理解环境、调工具、组织多步任务", 14, MUTE, False, False, dk.EAFONT)]], align=PP_ALIGN.CENTER)
     modes = [("标准","默认全套工具,日常开发"),("PTC","生成代码组合多步调用"),("极简","只留 Shell,跑基准"),("创造","agent 改自己的插件")]
-    cols = dk.columns(4, slide=s, top=3.6, bottom=0.95, margin=0.5, gap=0.3)
+    cols = dk.columns(4, slide=s, top=3.6, bottom=1.3, margin=0.5, gap=0.3)
     b8 = Build(s)
     for i,((n,d),c) in enumerate(zip(modes, cols)):
         x,y,w,h = c
