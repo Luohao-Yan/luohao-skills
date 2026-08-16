@@ -54,6 +54,11 @@ Record the design plan, mirroring slide-maker's design checkpoint, in a
   `carve: uses geometric idiom (numbered gradient circles, colored-edge cards,
   arrows) instead` and use the template's geometric vocabulary. Don't fail trying
   to rasterize icons.
+- `diagram_pages` — **list every slide whose content is a structure (an architecture,
+  a layering, a composition, a pipeline, a comparison-of-relationships), and commit to
+  drawing it as a diagram, not a text list.** A page that reads as "5 rows of
+  concept-name + description" is a missed diagram. See "The text-list-where-a-diagram-
+  belongs" failure mode below.
 
 ### 3. Build (via slide-maker's deckkit, colors from profile)
 Use `templates/build_skeleton.py` as the starting point — it reads `profile.yaml`
@@ -220,6 +225,34 @@ content should end by ~6.25).
 Prefer `bottom_callout_at` over `dk.bottom_callout` when you care about the *visual*
 bottom margin — `bottom_callout` is correct (footer-safe) but visually conservative.
 The even margin across pages is what makes a deck look designed, not auto-generated.
+
+## The text-list-where-a-diagram-belongs (a real failure mode)
+
+The cheapest way to put 5 concepts on a slide is 5 rows of "name + description" — and
+it is almost always wrong. If the content is a **structure** (an architecture where
+parts mount onto a container; a layering where layers stack and patch; a pipeline; a
+comparison whose *relationship* is the point), a text list hides exactly the thing the
+slide is there to show. The audience reads 5 parallel lines and never sees "plugins
+mount onto ctx keys" or "layers stack and each can patch those below." The deck is
+technically complete, visually lazy.
+
+The fix (validated, on the reference deck's Cordis and plugin-tree slides):
+- **At the design gate, flag every structure-content slide as a diagram.** List them
+  in `diagram_pages` and commit to drawing the structure, not listing it.
+- **Draw it with the geometric vocabulary**: a container box (`dk.box`) holding key
+  slots, child cards (`card`) as the mountable units, `dk.connector(..., arrow=True)`
+  lines from each slot to its unit to show the mount relationship; or a vertical stack
+  of layer cards with `dk.arrow(..., direction='down')` between them to show stacking,
+  and "← can patch below" labels on the patch-capable layers. `connector` (with
+  `style='solid'|'dashed'|'dotted'`) carries edge semantics; `arrow` carries direction;
+  `box`/`card` carry the nodes. This is real diagramming, not text-with-borders.
+- **A text list is the fallback only when the items are genuinely parallel and
+  independent** (e.g. "5 recommendations" — those ARE a list, not a structure). When in
+  doubt, ask: "is the *relationship* between these the point?" If yes, draw it.
+
+Rule of thumb: **if a reader could redraw the relationships from your slide, you drew
+a diagram; if they can only read the items, you drew a list.** Training decks that
+explain an architecture must pass the redraw test on the architecture slides.
 
 ## What Stage 3 does NOT do
 - Re-investigate (Stage 1) or re-structure the argument (Stage 2) — it projects the

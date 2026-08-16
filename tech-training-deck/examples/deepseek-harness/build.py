@@ -128,20 +128,31 @@ def build():
     bottom_callout_at(s, 0.5, W_IN-1.0, 7.07, "一句话", "让大模型『能动手干活』的运行时底座,对标 Claude Code / Codex,开源。", label_c=D.anchor, body_c=DARK)
     notes(s, "Agent=模型+Harness。四模式:标准/PTC/极简/创造。创造模式 agent 能改自己的插件。")
 
-    # 8 Cordis 五概念
-    s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")]); set_title(s, "Cordis 五概念,让每一部分都可替换", D.anchor)
-    concepts = [("插件=服务","ctx.*","带 apply(ctx) 的函数或 Service 子类"),("上下文按 key 找","ctx.tools/llm","按稳定 key 找服务,不 import 实现"),("inject 声明依赖","inject:[]","等依赖就绪才启动,加载顺序由依赖决定"),("事件四模式","emit/waterfall/…","观察·改写·扇出·按序"),("注册可逆","ctx.effect/on","装的副作用卸载时自动撤销")]
-    rows = dk.rows(5, slide=s, top=1.4, bottom=0.75, gap=0.22)
-    for i,((n,key,d),c) in enumerate(zip(concepts, rows)):
-        x,y,w,h = c
-        dk.box(s, x, y, 0.42, h, fill=D.anchor, round=True, r=0.06)
-        dk.text(s, x, y, 0.42, h, [[(str(i+1),16,WHITE,True,False,dk.FONT)]], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, wrap=False)
-        card(s, x+0.55, y, w-0.55, h, fill=CARDBG, line=RGBColor(0xE8,0xE8,0xEE), line_w=1.0, r=0.06)
-        dk.text(s, x+0.75, y+0.06, 3.4, 0.35, [[(n,14,D.anchor,True,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE, wrap=False)
-        dk.text(s, x+0.75, y+0.06, 3.4, h-0.12, [[(key,13,D.neutral,False,False,dk.FONT)]], anchor=MSO_ANCHOR.BOTTOM, wrap=False)
-        dk.box(s, x+4.25, y+0.12, 0.012, h-0.24, fill=RGBColor(0xDD,0xDD,0xDD))
-        dk.text(s, x+4.45, y+0.05, w-4.65, h-0.1, [[(d,14,INK,False,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE, line_spacing=1.2)
-    notes(s, "Cordis 五概念:插件=服务/上下文按key/inject/事件四模式/注册可逆。没有特权内核。")
+    # 8 Cordis 五概念 (架构示意图:ctx 容器 + 4 插件挂载)
+    s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")]); set_title(s, "Cordis 五概念：插件挂到 ctx，按 key 找、可撤销", D.anchor)
+    ctx_x, ctx_y, ctx_w, ctx_h = 0.7, 1.55, 3.4, 4.9
+    dk.box(s, ctx_x, ctx_y, ctx_w, ctx_h, fill=RGBColor(0xF3,0xF5,0xF8), line=D.neutral, line_w=2.0, round=True, r=0.1)
+    dk.box(s, ctx_x+0.2, ctx_y+0.2, ctx_w-0.4, 0.62, fill=D.neutral, round=True, r=0.08)
+    dk.text(s, ctx_x+0.2, ctx_y+0.2, ctx_w-0.4, 0.62, [[("插件 = Service 对象",13.5,WHITE,True,False,dk.EAFONT),("  (apply ctx)",11,RGBColor(0xCC,0xDD,0xEE),False,False,dk.FONT)]], align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+    dk.text(s, ctx_x+0.2, ctx_y+0.92, ctx_w-0.4, 0.3, [[("ctx 服务容器 · 按稳定 key 持有",11,RGBColor(0x6B,0x6B,0x6B),False,False,dk.EAFONT)]], align=PP_ALIGN.CENTER)
+    pairs = [("ctx.tools/llm","按 key 找","按稳定 key 找服务,不 import 实现"),("inject:[]","inject 依赖","等依赖就绪才启动,顺序由依赖决定"),("emit/waterfall/…","事件四模式","观察·改写·扇出·按序"),("ctx.effect/on","注册可逆","装的副作用卸载时自动撤销")]
+    slot_x = ctx_x+0.3; slot_w = ctx_w-0.6
+    slot_ys = [ctx_y+1.35 + i*0.82 for i in range(4)]
+    plug_x = 5.6; plug_w = 7.1; plug_ys = [1.75 + i*1.02 for i in range(4)]
+    for i,(ky,n,d) in enumerate(pairs):
+        sy = slot_ys[i]
+        dk.box(s, slot_x, sy, slot_w, 0.6, fill=WHITE, line=RGBColor(0xC8,0xD0,0xDC), line_w=1.0, round=True, r=0.08)
+        dk.text(s, slot_x+0.15, sy+0.03, slot_w-0.3, 0.55, [[(ky,12.5,D.anchor,True,False,dk.FONT)]], anchor=MSO_ANCHOR.MIDDLE, wrap=False)
+        py = plug_ys[i]
+        card(s, plug_x, py, plug_w, 0.86, fill=WHITE, line=D.anchor, line_w=1.4, r=0.08)
+        dk.box(s, plug_x, py, 0.12, 0.86, fill=D.anchor, round=True, corners='left', r=0.08)
+        dk.text(s, plug_x+0.25, py+0.1, 2.4, 0.34, [[(n,14,D.anchor,True,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE, wrap=False)
+        dk.text(s, plug_x+0.25, py+0.46, 2.4, 0.3, [[(ky,11,D.neutral,False,False,dk.FONT)]], wrap=False)
+        dk.box(s, plug_x+2.75, py+0.14, 0.012, 0.6, fill=RGBColor(0xDD,0xDD,0xDD))
+        dk.text(s, plug_x+2.9, py+0.08, plug_w-3.05, 0.72, [[(d,13,INK,False,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE, line_spacing=1.15)
+        dk.connector(s, (slot_x+slot_w, sy+0.3), (plug_x, py+0.43), style="solid", color=RGBColor(0xB0,0xB8,0xC4), width=1.5, arrow=True)
+    bottom_callout_at(s, 0.5, W_IN-1.0, 7.07, "一句话", "没有特权内核——连 agent 循环本身都是 ctx 上的一个插件,随时可换可拆。", label_c=D.anchor, body_c=RGBColor(0x20,0x26,0x30))
+    notes(s, "Cordis 五概念:插件=Service对象/按key找/inject依赖/事件四模式/注册可逆。架构图:ctx容器持key,插件挂到key上。没有特权内核。")
 
     # 9 signature move: ctx.llm 插槽图
     s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")]); set_title(s, "能力 seam:换一个 Provider,换一个世界", D.anchor)
