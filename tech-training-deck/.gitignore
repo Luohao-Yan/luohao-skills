@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 运行时产物(不入仓)
+render/
+extracted/
+*.deck-gates.json
+.DS_Store
+
+# 本地模板/敏感物(版权:不提交用户企业 .pptx 模板)
+*.pptx
+!examples/**/*.pptx.example
+profile.local.yaml

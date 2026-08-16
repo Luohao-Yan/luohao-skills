@@ -1,0 +1,47 @@
+# profile.yaml — examples/deepseek-harness 的品牌档案示例
+#
+# 注意:这是【示例】,演示 inspect_and_profile.py 的产出格式 + 人工填的 semantic_contract。
+# 同事用本 skill 时,先对自己的 .pptx 跑 inspect_and_profile.py 生成自己的 profile.yaml,
+# 再照下面填 semantic_contract。本仓库不含任何企业模板本体(版权)。
+#
+# 下面颜色取自一个典型的红主调政企模板(theme clrScheme),仅作格式示范。
+# 你的模板色会不同——以你 inspect 出来的为准,不要抄这里的 hex。
+
+canvas:
+  w_in: 13.333
+  h_in: 7.5
+
+colors:
+  dk1: "#202630"
+  dk2: "#171616"
+  lt2: "#E7E6E6"
+  accent1: "#E6002D"   # 主红
+  accent2: "#F76727"   # 橙
+  accent3: "#3F5469"   # 深蓝灰
+  accent4: "#FFC000"   # 金
+  accent5: "#074DB5"
+  accent6: "#05D8F6"
+  hlink: "#0563C1"
+
+fonts:
+  latin: "Arial"
+  ea: "微软雅黑"
+  # 常用渐进三色(流程图渐进色,可选)
+  gradient3: ["#FCE5D6", "#F46B30", "#C60000"]
+
+layouts:
+  cover: 11            # 标题页/封面
+  content: 0           # 内容页-浅色-有底线
+  dark: 2              # 内容页-深色-有底线(关键发现/强调页)
+  red_conclusion: 4    # 内容页-红色-有底线(结论页)
+  chapter: 16          # 章节页(背景图,白字需衬底→deck_helpers.chap 已处理)
+  blank: 8             # 空白
+
+# 语义色契约(人工填):把 accent 绑到【本 deck】的语义角色。
+# 与内容绑定,机器无法推断。这是"主题色 → 内容语义"的绑定层。
+# build 脚本通过 D.anchor / D.comparator / D.neutral / D.emphasis 取这些色。
+semantic_contract:
+  anchor_subject: accent1     # 红 = 本次培训的主锚点主题(DeepSeek/核心结论/主标题)
+  comparator: accent2          # 橙 = 对比对象(WorkBuddy/Pi)
+  neutral: accent3             # 深蓝灰 = 中性说明/表头
+  emphasis: accent4            # 金 = 强调句/take-away
