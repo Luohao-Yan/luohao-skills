@@ -7,6 +7,7 @@
 | Skill | 作用 | 安装 |
 |---|---|---|
 | [tech-training-deck](tech-training-deck/) | 技术主题 → 给领导培训材料(调研→培训md→模板品牌PPT)一条龙 | `npx skills add Luohao-Yan/luohao-skills@tech-training-deck -g -y` |
+| [editing-office-docs](editing-office-docs/) | 程序化编辑 Word .doc/.docx：锚点插章节/表格、高亮修改处、doc↔docx 互转、交付前校验落地 | `npx skills add Luohao-Yan/luohao-skills@editing-office-docs -g -y` |
 
 > 安装单个 skill: `npx skills add Luohao-Yan/luohao-skills@<skill名> -g -y`
 

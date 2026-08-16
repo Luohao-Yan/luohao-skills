@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 运行时产物(不入仓)
+_work/
+extracted/
+*.docx.bak
+.DS_Store
+
+# 本地文档/敏感物(不提交用户企业 .doc/.docx 原稿)
+*.doc
+*.docx
+!examples/**/*
