@@ -18,7 +18,7 @@ from pptx.util import Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from load_profile import load
-from deck_helpers import Deck, set_title, num_circle, chap, card, para, notes
+from deck_helpers import Deck, set_title, num_circle, chap, card, para, notes, bottom_callout_at
 
 TPL = r"<改为你自己的.pptx模板路径>"   # 例:r"C:/Users/.../某企业模板.pptx"
 OUT = os.path.join(HERE, "training-deck.pptx")
@@ -88,7 +88,7 @@ def build():
         dk.text(s, x+0.18, y+1.0, w-0.36, 0.32, [[(form, 12.5, D.neutral, False, False, dk.EAFONT)]])
         dk.box(s, x+0.18, y+1.38, w-0.36, 0.012, fill=RGBColor(0xDD,0xDD,0xDD))
         dk.text(s, x+0.18, y+1.5, w-0.36, 0.7, [[(feat, 13, INK, False, False, dk.EAFONT)]], line_spacing=1.2)
-    dk.bottom_callout(s, 0.5, W_IN-1.0, "关键纠偏", "WorkBuddy 是腾讯的、非 DeepSeek;灵犀(千万办公)才含 WPS 办公功能;Comate 内嵌第三方开源 Pi。", label_c=D.anchor, body_c=DARK)
+    bottom_callout_at(s, 0.5, W_IN-1.0, 7.07, "关键纠偏", "WorkBuddy 是腾讯的、非 DeepSeek;灵犀(千万办公)才含 WPS 办公功能;Comate 内嵌第三方开源 Pi。", label_c=D.anchor, body_c=DARK)
     notes(s, "WorkBuddy 不是 DeepSeek 的,是腾讯;灵犀才真正含 WPS 办公;Comate 内嵌第三方 Pi。")
 
     # 5 关键发现(深色页)
@@ -103,7 +103,7 @@ def build():
     dk.text(s, x+0.3, y+0.25, w-0.6, 0.4, [[("意味着什么", 13, D.emphasis, True, False, dk.EAFONT)]], wrap=False)
     for i,it in enumerate(["Pi 轻量路线已被产品化落地","选型与产品方向一致、风险低","与 dsh 同源 pi-ai,可平滑评估"]):
         dk.text(s, x+0.3, y+0.7+i*0.56, w-0.6, 0.5, [[("▸  ",13,D.anchor,True,False,dk.FONT),(it,13,WHITE,False,False,dk.EAFONT)]], line_spacing=1.2)
-    dk.bottom_callout(s, 0.5, W_IN-1.0, "三大 harness 互不内嵌", "WorkBuddy 用 codebuddy、Comate 用 Pi、DeepSeek 用 dsh——各自独立。", label_c=D.emphasis, body_c=WHITE, fill=RGBColor(0x2A,0x14,0x18))
+    bottom_callout_at(s, 0.5, W_IN-1.0, 7.07, "三大 harness 互不内嵌", "WorkBuddy 用 codebuddy、Comate 用 Pi、DeepSeek 用 dsh——各自独立。", label_c=D.emphasis, body_c=WHITE, fill=RGBColor(0x2A,0x14,0x18))
     notes(s, "金山自家 Comate 的核心运行时就是第三方 Pi;我们也在用 Pi。三大 harness 互不内嵌。")
 
     # 6 章节页
@@ -125,7 +125,7 @@ def build():
             dk.text(s, x+0.12, y+0.82, w-0.24, 0.35, [[(n, 15, D.anchor, True, False, dk.EAFONT)]], align=PP_ALIGN.CENTER)
             dk.text(s, x+0.12, y+1.18, w-0.24, 0.6, [[(d, 14, INK, False, False, dk.EAFONT)]], align=PP_ALIGN.CENTER, line_spacing=1.1)
     b8.apply(effect="fade")
-    dk.bottom_callout(s, 0.5, W_IN-1.0, "一句话", "让大模型『能动手干活』的运行时底座,对标 Claude Code / Codex,开源。", label_c=D.anchor, body_c=DARK)
+    bottom_callout_at(s, 0.5, W_IN-1.0, 7.07, "一句话", "让大模型『能动手干活』的运行时底座,对标 Claude Code / Codex,开源。", label_c=D.anchor, body_c=DARK)
     notes(s, "Agent=模型+Harness。四模式:标准/PTC/极简/创造。创造模式 agent 能改自己的插件。")
 
     # 8 Cordis 五概念
@@ -162,7 +162,7 @@ def build():
         dk.text(s, x+0.12, y+0.5, pw-0.24, 0.4, [[(nm,14,col,True,False,dk.FONT)]], align=PP_ALIGN.CENTER, wrap=False)
         dk.text(s, x+0.12, y+0.95, pw-0.24, 0.5, [[(d,13,INK,False,False,dk.EAFONT)]], align=PP_ALIGN.CENTER, line_spacing=1.15)
         dk.text(s, x+0.12, y+1.62, pw-0.24, 0.8, [[("换这个\n= 换模型底座",14,D.anchor,True,False,dk.EAFONT)]], align=PP_ALIGN.CENTER, line_spacing=1.1)
-    dk.bottom_callout(s, 0.5, W_IN-1.0, "seam 三角色", "Service Definition·Service Provider(并列可换)·Consumer——三者一并设计才是一个完整能力。", label_c=D.anchor, body_c=DARK)
+    bottom_callout_at(s, 0.5, W_IN-1.0, 7.07, "seam 三角色", "Service Definition·Service Provider(并列可换)·Consumer——三者一并设计才是一个完整能力。", label_c=D.anchor, body_c=DARK)
     notes(s, "ctx.llm 是插槽,三个 Provider 可换,DeepSeek 默认。换 Provider=换模型底座。")
 
     # 10 章节页
@@ -182,7 +182,7 @@ def build():
             dk.text(s, x+1.0, y+0.12, w-1.2, 0.35, [[(n,15,D.anchor,True,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE, wrap=False)
             dk.text(s, x+1.0, y+0.12, w-1.2, h-0.24, [[("　",1,WHITE,False,False),(d,14,INK,False,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE, line_spacing=1.15)
     b13.apply(effect="fade")
-    dk.bottom_callout(s, 0.5, W_IN-1.0, "一句话", "谁定义 harness 标准,谁就定义模型被怎么用、用谁的——DeepSeek 同时开源模型与 harness,用动手层标准化反向锁定模型层。", label_c=D.anchor, body_c=DARK)
+    bottom_callout_at(s, 0.5, W_IN-1.0, 7.07, "一句话", "谁定义 harness 标准,谁就定义模型被怎么用、用谁的——DeepSeek 同时开源模型与 harness,用动手层标准化反向锁定模型层。", label_c=D.anchor, body_c=DARK)
     notes(s, "四步:默认带DeepSeek/先选harness/数据回流/生态飞轮。谁定义harness谁定义模型分发。")
 
     # 12 dsh vs Pi 对比

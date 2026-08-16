@@ -174,6 +174,26 @@ Do **not** shrink the content block so much that its own text overlaps (a too-ta
 also a `TEXT_OVERLAP`). The content block needs its real text height; reserve the
 callout room by shortening the body, not by crushing the cards.
 
+## The callout floating-too-high fix (a visual-quality failure mode)
+
+`dk.bottom_callout(x, w, …, footer_gap=0.15)` anchors above a `FOOTER_BAND=0.5in`
+reserved zone, so its bottom lands at ~6.85in on a 7.5in slide — leaving ~0.65in of dead
+space below it. The callout **doesn't collide with anything, but it reads as "floating"**
+mid-lower-page, with uneven bottom margin. On a polished deck this looks unfinished.
+
+The fix (validated against a hand-tuned reference slide): use
+`deck_helpers.bottom_callout_at(slide, x, w, bottom_y, label, body)` — it anchors to an
+**explicit bottom_y** (e.g. `7.07`), measuring the callout height and placing `y =
+bottom_y - h`. This puts the callout's bottom edge where you want it (here ~0.43in from
+the true bottom, snug above the footer band) and gives a consistent, even bottom margin
+across every page that has a callout. Pair it with content blocks whose `bottom`
+leaves ≥0.28in above the measured callout top (on the 7.07-anchor, callout top ≈6.53, so
+content should end by ~6.25).
+
+Prefer `bottom_callout_at` over `dk.bottom_callout` when you care about the *visual*
+bottom margin — `bottom_callout` is correct (footer-safe) but visually conservative.
+The even margin across pages is what makes a deck look designed, not auto-generated.
+
 ## What Stage 3 does NOT do
 - Re-investigate (Stage 1) or re-structure the argument (Stage 2) — it projects the
   already-verified doc onto slides.

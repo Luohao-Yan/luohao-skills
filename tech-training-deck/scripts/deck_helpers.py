@@ -22,6 +22,17 @@ import deckkit as dk
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 GOLD_FALLBACK = RGBColor(0xFF, 0xC0, 0x00)
 
+def bottom_callout_at(slide, x, w, bottom_y, label, body, **kw):
+    """锚定到指定 bottom_y(向上长)的 callout,精确控制贴底位置——比 bottom_callout 的
+    footer 锚更可控(后者受 FOOTER_BAND=0.5 限制,底到 6.85 留白偏大)。
+    先量高度,再放 y=bottom_y-h。返回 top y(供上方内容避让)。
+    用法: top = bottom_callout_at(s, 0.5, W-1.0, 7.07, "一句话", "...");
+          上方内容 bottom 应 < top - 0.28(留 0.28in 视觉间距)。"""
+    ch = dk.measure_callout(label, body, w)
+    y = bottom_y - ch
+    dk.callout(slide, x, y, w, ch, label, body, **kw)
+    return y
+
 class Deck:
     """持有 profile + deckkit 全局字体,build 脚本从这取颜色/字体/layout。"""
     def __init__(self, profile):
