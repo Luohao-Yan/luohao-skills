@@ -62,25 +62,27 @@ def num_circle(slide, cx, cy, d, num, color_a, color_b, tcolor=WHITE, size=16, f
             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, wrap=False)
 
 def chap(prs, deck, layout_role, num, title, sub="", accent=None):
-    """章节页:编号+标题(+副标题),带半透明深色衬底条(修深暖背景白字对比坑)。
-    layout_role: profile 里的章节页 role(如 'chapter');若该模板章节页背景图深暖,
-    白字直接放对比不足→本 helper 自动加深色衬底。换模板若章节页是浅底,可改为深字。"""
-    s = prs.slides.add_slide(prs.slide_layouts[deck.P.layout(layout_role)])
-    s.placeholders[0].text = ""   # 清占位符,改自绘以控层级
+    """章节页:用模板的章节页占位符(标题 idx0 + 副标题 idx10),字号/位置/背景由版式保证。
+    不自绘衬底——沿用模板设计语言(模板的占位符已在合适位置,背景图标题区是暗的,白字可读)。
+    若某模板章节页白字确不可读,再说;默认信任模板设计。"""
     accent = accent or deck.anchor
-    bx_y = 2.72
-    # 半透明深色衬底条(深色取自 accent 的暗化近似)
-    a = accent
-    dark = RGBColor(max(0,a[0]//5), max(0,a[1]//8), max(0,a[2]//10))
-    dk.box(s, 0.8, bx_y, 11.7, 1.3,
-           grad=[(0.0, dark, 0.80), (1.0, dark, 0.58)], grad_angle=0, round=True, r=0.12)
-    dk.text(s, 1.2, bx_y+0.18, 11.1, 0.95,
-            [[(f"{num}   ", 38, GOLD_FALLBACK, True, False, dk.FONT),
-              (title, 36, WHITE, True, False, dk.EAFONT)]],
-            anchor=MSO_ANCHOR.MIDDLE, line_spacing=1.0)
+    s = prs.slides.add_slide(prs.slide_layouts[deck.P.layout(layout_role)])
+    # idx0 标题占位符:编号 + 标题
+    ph = s.placeholders[0]
+    ph.text = f"{num}  {title}"
+    for p in ph.text_frame.paragraphs:
+        for r in p.runs:
+            r.font.bold = True; r.font.name = dk.FONT
+            dk._apply_ea(r, dk.EAFONT)
+    # idx10 副标题占位符(模板自带 24 号样式)
     if sub:
-        dk.text(s, 1.2, bx_y+1.42, 11.1, 0.4,
-                [[(sub, 15, RGBColor(0xFF,0xE0,0xCC), False, False, dk.EAFONT)]], line_spacing=1.1)
+        try:
+            ph2 = s.placeholders[10]; ph2.text = sub
+            for p in ph2.text_frame.paragraphs:
+                for r in p.runs:
+                    r.font.name = dk.EAFONT; dk._apply_ea(r, dk.EAFONT)
+        except (KeyError, IndexError):
+            pass
     return s
 
 def card(slide, x, y, w, h, fill=None, line=None, line_w=1.5, r=0.12, corners='all'):
