@@ -164,20 +164,42 @@ Two safe fixes (use either, often both):
 1. **Keep the on-slide body short** — move the long sentence to speaker notes; the
    callout body should be one line. This is the cheapest fix and matches "sentences in
    notes, phrases on the slide."
-2. **Reserve enough bottom for the callout** — set the content block's `bottom` so the
-   block's lowest edge (the **card box**, not just its text — the box has no text_frame
-   and won't trip `TEXT_OVERLAP`, so a box overhanging the callout is invisible to lint
-   until you eyeball the render) sits above the callout's top. With `bottom_callout_at(
-   …, bottom_y=7.07)`, the callout top is ~6.53, so the content block's box bottom must
-   be ≤6.25 (≥0.28in gap). That means `columns`/`rows` `bottom` ≥ ~1.25in on a 7.5in
-   slide. **`bottom≈0.75` or `0.95` is too tight** — the card box renders to 6.55–6.75
-   and overhangs the callout. Verify by measuring every shape's bottom (including
-   boxes), not just text shapes — a text-only check will miss box-on-callout overlaps.
+2. **Reserve enough bottom for the callout** — set the content block's `bottom` so its
+   lowest edge (the card box) clears the callout top. With `bottom_callout_at(…,
+   bottom_y=7.07)`, callout top ≈6.53, so `columns`/`rows` `bottom` ≥ ~1.25in on a 7.5in
+   slide; `bottom≈0.75` or `0.95` is too tight. The box-on-callout overlap this causes
+   is its own failure mode — see "The lint-blind box overlap" below; a text-only check
+   won't catch it.
 
 Do **not** shrink the content block so much that its own text overlaps (a too-tall
 `bottom` compresses cards and the card's title/description text overlap each other —
 also a `TEXT_OVERLAP`). The content block needs its real text height; reserve the
 callout room by shortening the body, not by crushing the cards.
+
+## The lint-blind box overlap (a real failure mode)
+
+`lint_layout`'s `TEXT_OVERLAP` only fires on shapes that carry rendered **text** — it
+compares text ink boxes. A `card` / `dk.box` with no `text_frame` (or whose text is in a
+separate overlapping shape) is **invisible to that check**. So a card box that overhangs
+a `bottom_callout`, or two boxes that overlap, passes lint clean — and you ship a deck
+where a dark box sits on top of the callout band. This is exactly how slide 6/8 of the
+reference deck broke: the content block's `bottom` was too small, the card box rendered
+to 6.55–6.75in and overlapped the callout at 6.53in, but `TEXT_OVERLAP` saw nothing
+because the box has no text.
+
+The fix (validated):
+- **When verifying, measure every shape's bottom — including boxes, not just text
+  shapes.** A check that iterates `for sh in slide.shapes: if sh.has_text_frame` misses
+  box overlaps. Iterate all shapes, take `sh.top + sh.height` as the bottom, confirm no
+  non-callout shape's bottom crosses the callout's top (or any lower element's top).
+  This is the only way to catch box-on-callout / box-on-box overlaps.
+- **Reserve bottom by the box, not the text.** A card extends to its `bottom` param
+  even if the text inside stops higher — set `bottom` so the *box* clears the callout,
+  then confirm the text still fits inside the (now shorter) box.
+
+Rule of thumb: **the render is the source of truth; lint is a safety net with blind
+spots.** Eyeball every page's render after build — do not trust a green lint alone on
+dense layouts.
 
 ## The callout floating-too-high fix (a visual-quality failure mode)
 
