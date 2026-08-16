@@ -106,6 +106,40 @@ the font dependency (the template's CJK font, e.g. 微软雅黑, must be present
 machine that opens the deck) and the animation caveat (appear-builds need
 PowerPoint/Keynote to play; LibreOffice renders only the final state).
 
+## The hard-coded brand-color drift (a real failure mode)
+
+The first version of this skill's example build script hand-copied the template's theme
+colors into Python constants at the top of the file: `RED = RGBColor(0xE6, 0x00, 0x2D)`
+# copied from the template. That **silently drifts**: re-theme the template, or apply it
+to a second template, and the hex stays frozen while the template moved — the deck
+renders in last year's colors and nobody notices until it's on screen.
+
+The fix (validated): `scripts/inspect_and_profile.py` reads the theme `clrScheme` straight
+out of the `.pptx` and writes `profile.yaml`; `scripts/load_profile.py` injects those
+colors into the build. **Never hand-copy a hex from the template into the build script.**
+If you find yourself typing `RGBColor(0x..)`, stop — it belongs in `profile.yaml`, loaded
+by `load_profile.load()`. The build script should say `D.anchor` / `D.comparator`, not a
+raw hex. This also fixes the second template problem: `inspect_and_profile` on a new
+`.pptx` regenerates the colors in one command, no edit-by-edit porting.
+
+## The hard-coded slide-maker path (a real failure mode)
+
+The build scripts import slide-maker's `deckkit` / `anim`. The first version hard-coded
+one path — `~/.claude/skills/slide-maker/scripts` — which is **only correct on machines
+that `npx skills`-installed slide-maker and got the symlink**. A colleague who
+`git clone`d slide-maker to `~/.agents/`, or installed it per-project, hit
+`ModuleNotFoundError: No module named 'deckkit'` the moment they ran the build — even
+though `check_env` said slide-maker was present. The skill "worked on the author's
+machine" and broke for real users: the textbook toy-vs-usable gap.
+
+The fix (validated): `scripts/slide_maker_path.py`'s `find_slide_maker()` probes
+`~/.claude`, `~/.agents`, `~/.codex` (and per-project) and returns the first dir that
+actually contains `deckkit.py`. Build scripts call `sys.path.insert(0, find_slide_maker())`
+**before** `import deckkit`. Never hard-code one skills-dir path — there are at least
+three legitimate install locations and you don't know which your user used. (This also
+matters for the **dependency-on-slide-maker** note in `SKILL.md` `## Install Source`:
+state the dependency, but don't assume where it lives.)
+
 ## The chapter-page contrast fix (a real failure mode)
 
 Many corporate templates' chapter-divider layout (a full-bleed background image:
