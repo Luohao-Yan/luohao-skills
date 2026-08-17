@@ -128,6 +128,21 @@ def build():
     bottom_callout_at(s, 0.5, W_IN-1.0, 7.07, "一句话", "让大模型『能动手干活』的运行时底座,对标 Claude Code / Codex,开源。", label_c=D.anchor, body_c=DARK)
     notes(s, "Agent=模型+Harness。四模式:标准/PTC/极简/创造。创造模式 agent 能改自己的插件。")
 
+
+    # 7b 整体架构全景(五层)
+    s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")]); set_title(s, "整体架构：五层插件，自下而上组合", D.anchor)
+    layers = [("Cordis 内核 (vendor)","插件元框架：ctx 容器 · inject · 事件 · 注册可逆",D.neutral,RGBColor(0xE9,0xEE,0xF5)),("核心服务 seams","ctx.llm · ctx.tools · ctx.agents · ctx.shell · ctx.fs · ctx.sessions · ctx.subagents",D.neutral,RGBColor(0xF2,0xF5,0xF9)),("能力插件包 (packages/*)","llm-deepseek/llm-pi-ai · tool-* · shell-* · fs · lsp · subagent-* · web · skill · workflow",D.anchor,RGBColor(0xFF,0xF4,0xF6)),("组合包 / 组合点","dsh-base bundle · preset (cordis.yml) · profile (用户 patch)",D.anchor,RGBColor(0xFF,0xF1,0xF3)),("apps 组装点","apps/cli (dsh 命令) · apps/web · ACP · JSON-RPC",RGBColor(0xC6,0,0),RGBColor(0xFF,0xEE,0xF0))]
+    lx, lw = 0.7, 11.9; ly0 = 1.45; lh = 0.78; gap = 0.18
+    for i,(t,d,col,fill) in enumerate(layers):
+        y = ly0 + i*(lh+gap)
+        card(s, lx, y, lw, lh, fill=fill, line=col, line_w=1.6 if i>=2 else 1.0, r=0.08)
+        dk.box(s, lx, y, 0.1, lh, fill=col, round=True, corners='left', r=0.08)
+        dk.text(s, lx+0.25, y+0.05, 3.6, 0.34, [[(t,14,col,True,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE, wrap=False)
+        dk.text(s, lx+3.95, y+0.05, lw-4.15, lh-0.1, [[(d,12,INK,False,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE, line_spacing=1.15)
+        if i < len(layers)-1: dk.arrow(s, lx+lw/2-0.12, y+lh+0.0, 0.24, gap, color=RGBColor(0xB0,0xB8,0xC4), direction='down')
+    bottom_callout_at(s, 0.5, W_IN-1.0, 7.07, "host/client 双面", "core 既是被组合的插件集，也暴露 host/client 给外部进程（ACP/JSON-RPC）——同一内核多种形态。", label_c=D.anchor, body_c=RGBColor(0x20,0x26,0x30))
+    notes(s, "dsh 五层架构:Cordis内核→核心seams→能力插件包→组合包→apps。组合↑依赖↓。host/client双面。证据:packages/README.zh.md、bundle/README.zh.md、pnpm-workspace.yaml。")
+
     # 8 Cordis 五概念 (架构示意图:ctx 容器 + 4 插件挂载)
     s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")]); set_title(s, "Cordis 五概念：插件挂到 ctx，按 key 找、可撤销", D.anchor)
     ctx_x, ctx_y, ctx_w, ctx_h = 0.7, 1.55, 3.4, 4.9
@@ -154,6 +169,23 @@ def build():
     bottom_callout_at(s, 0.5, W_IN-1.0, 7.07, "一句话", "没有特权内核——连 agent 循环本身都是 ctx 上的一个插件,随时可换可拆。", label_c=D.anchor, body_c=RGBColor(0x20,0x26,0x30))
     notes(s, "Cordis 五概念:插件=Service对象/按key找/inject依赖/事件四模式/注册可逆。架构图:ctx容器持key,插件挂到key上。没有特权内核。")
 
+
+    # 8b Agent loop 执行流程
+    s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")]); set_title(s, "Agent loop：一轮 turn 怎么跑（ReactLoopAgent）", D.anchor)
+    stages = [("1 构造请求","buildRequest","上下文 + compaction 压缩 + 工具 schema 注入",D.neutral),("2 调 LLM","ctx.llm","经 seam 调模型（deepseek/pi-ai/replay 可换）→ 流式输出 + tool calls",D.anchor),("3 解析工具调用","ctx.tools","tool calls 落到 ctx.tools 上对应工具",D.neutral),("4 工具执行管线","审批→沙箱→执行","interaction 审批 → sandbox → 执行 → 结果喂回上下文",D.anchor),("5 判停","agent/turn-stopping","goal 达成 / 用户中断 / max turns / 不再请求工具",RGBColor(0xC6,0,0))]
+    sx, sw = 0.7, 11.9; sy0 = 1.5; sh = 0.72; gap = 0.2
+    for i,(t,fn,d,col) in enumerate(stages):
+        y = sy0 + i*(sh+gap)
+        card(s, sx, y, sw, sh, fill=WHITE, line=col, line_w=1.4, r=0.08)
+        dk.box(s, sx, y, 0.1, sh, fill=col, round=True, corners='left', r=0.08)
+        dk.text(s, sx+0.25, y+0.04, 2.5, 0.34, [[(t,14,col,True,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE, wrap=False)
+        dk.text(s, sx+0.25, y+0.38, 2.5, 0.3, [[(fn,11,D.neutral,False,False,dk.FONT)]], wrap=False)
+        dk.box(s, sx+2.85, y+0.1, 0.012, sh-0.2, fill=RGBColor(0xDD,0xDD,0xDD))
+        dk.text(s, sx+3.0, y+0.04, sw-3.2, sh-0.08, [[(d,12.5,INK,False,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE, line_spacing=1.15)
+        if i < len(stages)-1: dk.arrow(s, sx+sw/2-0.12, y+sh+0.0, 0.24, gap, color=RGBColor(0xB0,0xB8,0xC4), direction='down')
+    dk.text(s, sx, sy0+len(stages)*(sh+gap)-0.04, sw, 0.3, [[("未停则 continue 下一 turn · 主循环对所有模式一致（模式只改工具集+prompt）",11,D.neutral,True,False,dk.EAFONT)]], align=PP_ALIGN.CENTER)
+    notes(s, "Agent loop:ReactLoopAgent逐turn。五阶段:buildRequest→ctx.llm→解析tool calls→执行管线(审批→沙箱→执行→喂回)→turn-stopping判停。模式不改loop只改工具集+prompt。证据:packages/core/agent/、compaction、interaction。")
+
     # 9 signature move: ctx.llm 插槽图
     s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")]); set_title(s, "能力 seam:换一个 Provider,换一个世界", D.anchor)
     slot_x, slot_y, slot_w, slot_h = 0.62, 1.4, 3.3, 2.6
@@ -175,6 +207,29 @@ def build():
         dk.text(s, x+0.12, y+1.62, pw-0.24, 0.8, [[("换这个\n= 换模型底座",14,D.anchor,True,False,dk.EAFONT)]], align=PP_ALIGN.CENTER, line_spacing=1.1)
     bottom_callout_at(s, 0.5, W_IN-1.0, 7.07, "seam 三角色", "Service Definition·Service Provider(并列可换)·Consumer——三者一并设计才是一个完整能力。", label_c=D.anchor, body_c=DARK)
     notes(s, "ctx.llm 是插槽,三个 Provider 可换,DeepSeek 默认。换 Provider=换模型底座。")
+
+
+    # 9b extensions 生态与插件分发
+    s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")]); set_title(s, "生态：插件即 npm/git 包，dsh plugin add 安装", D.anchor)
+    lx, lw = 0.7, 6.7
+    card(s, lx, 1.5, lw, 4.9, fill=WHITE, line=D.neutral, line_w=1.2, r=0.1)
+    dk.box(s, lx, 1.5, lw, 0.5, fill=D.neutral, round=True, corners='top', r=0.1)
+    dk.text(s, lx+0.2, 1.55, lw-0.4, 0.4, [[("分发机制",14,WHITE,True,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE)
+    items = [("bundle / patch-layer","Cordis 配置+挂载代码的分发格式，可被上层 patch"),("dsh plugin add","dsh plugin --profile <name> add <package-or-git-spec>"),("dsh-plugin GitHub topic","开发者给插件仓库打此标签被发现（去中心化）"),("官方 extensions 包","packages/extensions/ 扩展包都是 Cordis 插件，一等公民")]
+    for i,(k,d) in enumerate(items):
+        yy = 2.2 + i*1.0
+        dk.text(s, lx+0.25, yy, lw-0.5, 0.32, [[(k,13,D.anchor,True,False,dk.EAFONT)]], wrap=False)
+        dk.text(s, lx+0.25, yy+0.36, lw-0.5, 0.55, [[(d,11.5,INK,False,False,dk.EAFONT)]], line_spacing=1.15)
+    rx, rw = 7.7, 5.1
+    card(s, rx, 1.5, rw, 2.4, fill=RGBColor(0xFF,0xF4,0xF6), line=RGBColor(0xC6,0,0), line_w=1.4, r=0.1)
+    dk.box(s, rx, 1.5, rw, 0.5, fill=RGBColor(0xC6,0,0), round=True, corners='top', r=0.1)
+    dk.text(s, rx+0.2, 1.55, rw-0.4, 0.4, [[("时效提醒",14,WHITE,True,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE)
+    dk.text(s, rx+0.25, 2.1, rw-0.5, 1.7, [[("旧的 .dsh-plugin 仓库插件市场",12.5,RGBColor(0xC6,0,0),True,False,dk.EAFONT),(" 已于 2026-08-09 移除。以 ",12.5,INK,False,False,dk.EAFONT),("dsh-plugin GitHub topic + dsh plugin add",12.5,D.anchor,True,False,dk.FONT),(" 为准。",12.5,INK,False,False,dk.EAFONT)]], line_spacing=1.3)
+    card(s, rx, 4.05, rw, 2.35, fill=WHITE, line=D.anchor, line_w=1.2, r=0.1)
+    dk.box(s, rx, 4.05, rw, 0.5, fill=D.anchor, round=True, corners='top', r=0.1)
+    dk.text(s, rx+0.2, 4.1, rw-0.4, 0.4, [[("运行时自修改 = 生态一环",13,WHITE,True,False,dk.EAFONT)]], anchor=MSO_ANCHOR.MIDDLE)
+    dk.text(s, rx+0.25, 4.65, rw-0.5, 1.7, [[("创造模式 agent 经 cordis-host-runner 临时挂载/卸载插件——",11.5,INK,False,False,dk.EAFONT),("等于 agent 给自己装临时插件",11.5,D.anchor,True,False,dk.EAFONT),("，同属一切皆插件生态。",11.5,INK,False,False,dk.EAFONT)]], line_spacing=1.3)
+    notes(s, "dsh 生态去中心化:插件即npm/git包,dsh plugin add安装,dsh-plugin topic发现。旧.dsh-plugin市场2026-08-09移除。运行时自修改也属生态。证据:packages/bundle/、packages/extensions/、dsh plugin add。")
 
     # 10 章节页
     chap(prs, D, "chapter", "03", "DeepSeek 如何用 Harness 锁定模型底座", sub="用『动手层』标准化,反向锁定『模型层』")

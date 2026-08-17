@@ -68,8 +68,19 @@ dsh --profile headless "跑测试并修复失败"   # 命令行一次性任务
 | **创造** | agent 动态挂载/卸载临时插件、改自己的配置 | 高级实验(信任等级=shell 访问) |
 
 ### 1.4 生态热度与诚实提示
-- 开源约 2 天 GitHub star 近 9.5 万，24h 内 288 个 `dsh-plugin` 仓库；仓库含 230+ 个 workspace 成员。
+- 开源约 2 天 GitHub star 近 9.5 万；仓库含 230+ 个 workspace 成员。**注意时效**：旧 `.dsh-plugin` 仓库插件市场已于 2026-08-09 移除，现在以 `dsh-plugin` GitHub topic + `dsh plugin add` 命令为准（详见 2.6）。
 - **当前为开发者预览版，官方明确"未来将出现破坏兼容性的变更"**。面向开发者/二开，不适合追求稳定上生产。
+
+### 1.5 整体架构全景(五层)
+
+dsh 从底到顶五层，每层都是插件，上层组合下层：
+- **Cordis 内核**(`vendor/`)：插件元框架（ctx 容器/inject/事件/注册可逆）。
+- **核心服务 seams**(`ctx.<key>`)：ctx.llm / ctx.tools / ctx.agents / ctx.shell / ctx.fs / ctx.sessions / ctx.subagents。
+- **能力插件包**(`packages/*`)：实现 seams 的具体后端（llm-deepseek/llm-pi-ai、tool-*、shell-*、fs、lsp、subagent-*、web、skill、workflow）。
+- **组合包/组合点**：dsh-base bundle · preset(cordis.yml) · profile(用户 patch)。
+- **apps 组装点**：apps/cli(dsh 命令) · apps/web · ACP · JSON-RPC。
+
+组合方向自下而上，依赖方向自上而下（inject）。**host/client 双面**：core 既是被组合的插件集，也暴露 host/client 接口给外部进程集成——同一内核多种形态。
 
 ---
 
@@ -104,6 +115,24 @@ dsh 底层是 **Cordis**(vendor 引入的插件框架，源自 Koishi 生态)。
 - **profile/bundle/preset**：运行中的 dsh 是一棵插件树，按序叠加；任何层可 patch 其下所有层（`agent.cordis.yml` 的 isolate realm 分组，实测 `:104/:137/:174`）。
 - **加能力 = 挂插件**：加模型/工具/shell/终端/命令/后台任务/文件系统……全是挂插件（架构文档:112-131）。
 - **创造模式 self-modification**：agent 运行时检查、挂载、卸载自己的插件。底层 `vm` 沙箱(`sandbox.ts:129/96/227`) + 白名单 guard(`guard.ts:551/626/718`) + `cordis_run` 工具。信任等级 = shell 访问。
+
+### 2.5 Agent loop：一轮 turn 怎么跑（ReactLoopAgent）
+
+dsh 的 agent 循环由 `ReactLoopAgent` 驱动（`packages/core/agent/`），`while` 逐 **turn** 推进。一轮五阶段，每个阶段都是 Cordis 上可替换插件：
+1. **构造请求 buildRequest**：上下文 + compaction 压缩 + 工具 schema 注入。
+2. **调 LLM**：经 `ctx.llm` seam 调模型（deepseek/pi-ai/replay 可换）→ 流式输出 + tool calls。
+3. **解析工具调用**：tool calls 落到 `ctx.tools` 对应工具。
+4. **工具执行管线**：interaction 审批 → sandbox → 执行 → 结果喂回上下文。
+5. **判停**：`agent/turn-stopping` 事件（goal 达成 / 用户中断 / max turns / 不再请求工具）。未停则继续下一 turn。
+
+**四种模式不改 loop，改"工具集 + prompt"**：标准/PTC/极简/创造的主循环对所有模式完全一致——区别在 Cordis scope 父链注册的工具集和 prompt 段（PTC 用 `presentAs('code')` 把 schema 折叠成 `run_code`）。模式是配置层差异，不是 loop 分叉——正是一切皆插件。
+
+### 2.6 生态：extensions 与插件分发
+
+- **bundle / patch-layer**（`packages/bundle/`）：Cordis 配置 + 挂载代码的分发格式，可被上层 patch，无特权层。
+- **官方插件安装**：`dsh plugin --profile <name> add <package-or-git-spec>`（npm 包或 git 仓库）。
+- **发现渠道**：`dsh-plugin` GitHub topic（去中心化，非应用商店）。**时效**：旧 `.dsh-plugin` 仓库插件市场已于 2026-08-09 移除，以 GitHub topic + `dsh plugin add` 为准。
+- **运行时自修改也属生态**：创造模式 agent 经 cordis-host-runner 临时挂载/卸载插件，等于"agent 给自己装临时插件"，和 `dsh plugin add` 同属"一切皆插件"。
 
 ---
 
