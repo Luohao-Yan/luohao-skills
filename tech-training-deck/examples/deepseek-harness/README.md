@@ -54,4 +54,10 @@ python ~/.claude/skills/slide-maker/scripts/render_deck.py training-deck.pptx re
 - **门禁+豁免**:技术培训 deck 天然超 lint 的 40词/18pt 预算,带书面豁免理由放行而非降级成空洞 deck
 - **章节页对比修复**:深暖背景图上白字对比不足 → 加半透明深色衬底条(`deck_helpers.chap`)
 
+## 照这个样板做自己的 deck
+
+本案例的**编排骨架**(配色四角色语义契约 + 15-17 页页型序列 + signature move 范式 + 视觉形式清单)已抽象成一份**清除品牌的参考样板**,放进 `../../references/deck-reference-layout.md`。
+
+拿到你自己的模板、探查出主色后,照那份样板填 `profile.yaml` 的 `semantic_contract`、定页序列、定 signature move——不限主调(红/蓝/绿/深色都给了选色指引),不限主题。本目录的 `build.py` 是这份样板的一个**红主调政企实例**。
+
 `training-doc.md` 是完整的 7 节培训稿,可直接作为写自己培训文档的模板。

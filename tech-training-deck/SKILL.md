@@ -117,6 +117,7 @@ reports — it never auto-installs.
 | Stage 1 method (source tiers, evidence trace, attribution correction, parallel investigation) | `references/investigate.md` |
 | Stage 2 method (7-section doc skeleton, honest-limit pairing, evidence appendix) | `references/training-doc.md` |
 | Stage 3 method (template branch: inspect→profile→design gate→build→render→critic→gate→deliver; gate+waiver; **7 real failure modes**: brand-color drift, hard-coded slide-maker path, chapter-page contrast, bottom_callout overlap, callout floating-too-high, lint-blind box overlap, text-list-where-a-diagram-belongs) | `references/deck-from-template.md` |
+| **Reusable deck编排样板** (color semantic contract for any accent → page-type sequence → signature move pattern → visual vocabulary; brand-cleared, for high-density training decks) | `references/deck-reference-layout.md` |
 | Stage-to-stage handoff; what's mechanical vs. needs human judgment | `references/workflow.md` |
 | Inspect a user `.pptx` → emit `profile.yaml` + `profile.md` | `scripts/inspect_and_profile.py` |
 | Load `profile.yaml` into build-time color/font constants (no hand-copied hex) | `scripts/load_profile.py` |
