@@ -25,10 +25,10 @@
 # 1) 先装依赖 skill（Stage 3 的 PPT 引擎）
 npx skills add addsumtech/slides_maker -g -y
 
-# 2) 装本 skill（发布后替换 <your-github-user> 为你的仓库）
-npx skills add <your-github-user>/tech-training-deck -g -y
-#   未发布前可直接 git clone:
-#   git clone <repo> ~/.claude/skills/tech-training-deck/
+# 2) 装本 skill
+npx skills add Luohao-Yan/luohao-skills@tech-training-deck -g -y
+#   或直接 git clone:
+#   git clone https://github.com/Luohao-Yan/luohao-skills ~/.claude/skills/luohao-skills/
 
 # 3) 预检环境 + 装 Python 依赖
 python check_env.py
