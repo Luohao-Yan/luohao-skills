@@ -39,9 +39,9 @@ python ~/.claude/skills/slide-maker/scripts/render_deck.py training-deck.pptx re
 
 `build.py` 是本次真实 build 脚本的通用化版本:
 - 从 `profile.yaml` 读品牌色/字体/layout(**非硬编**),通过 `load_profile` + `deck_helpers.Deck`
-- 完整 deck 节奏:封面 → 目录 → 3 章节页 → 内容页(4-card 对比 / 双栏对比 / 深色关键发现 / 大公式+四模式 / **五层架构图** / Cordis 容器+插件挂载图 / **Agent loop 流程图** / **signature move 插槽图** / 插件树层叠图 / **extensions 生态图** / 红色结论 / 附录)
+- 完整 deck 节奏:封面 → 三问目录 → 3 章节页 → 内容页(四产品归属表 / **除了编程还有什么** / 深色关键发现 / 大公式+四模式 / **一切皆插件·插座比喻** / **五层结构简化** / **signature move 换模型=换插头** / 战略四步 / **预判追问(爆火/中国标准)** / **我们怎么利用 dsh** / 红色结论 / 附录)
 - **signature move**:slide 把 `ctx.llm` 画成可换插槽 → 红箭头 → 三张 provider 卡(deepseek 高亮默认),每张标"换这个=换模型底座"——核心论点做成可视隐喻
-- **该画图的页画真图**:架构(五层堆叠)、Agent loop(五阶段流程)、Cordis(ctx 容器+插件挂载+connector 连线)、插件树(层叠+箭头)、extensions(分发机制+时效)都用 deckkit 的 box/card/connector/arrow 画,非文字列表
+- **该画图的页画真图**:一切皆插件(插座板+4 插头)、五层结构(堆叠+箭头)、signature move(ctx.llm 插槽→3 provider 卡)、预判追问(双栏对比)都用 deckkit 的 box/card/arrow 画,非文字列表
 - 动画:多步页用 `Build.step()` 逐个出现
 - 讲者备注:每页 `notes()` 放话术,幻灯片只留短语
 - 门禁:`lint_layout(strict=True)` + `.deck-gates.json` 的 `density.waived`(技术培训 deck 高密度的合规出口)
