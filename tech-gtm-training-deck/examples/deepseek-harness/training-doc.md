@@ -1,6 +1,6 @@
 # DeepSeek Harness 能力培训 · 给公司领导（示例培训稿）
 
-> 本文档是 `tech-training-deck` skill 的 Stage 2 产物示例——一份完整的 7 节技术培训稿。
+> 本文档是 `tech-gtm-training-deck` skill 的 Stage 2 产物示例——一份完整的 7 节技术培训稿。
 > 它脱敏自一次真实工作：从本地源码实测 + 本机应用核实 + 公开信息，做成给领导的培训材料。
 > **可作为你写自己培训文档的结构模板**：7 节骨架 + 每结论带 `file_path:line` 证据 + 每节带诚实限度对冲。
 >

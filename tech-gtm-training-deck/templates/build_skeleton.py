@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""build_skeleton.py — tech-training-deck 的 build 脚手架模板(从 profile.yaml 读品牌)。
+"""build_skeleton.py — tech-gtm-training-deck 的 build 脚手架模板(从 profile.yaml 读品牌)。
 
 这是 examples/deepseek-harness/build.py 的通用化版本:品牌色/字体/layout 从
 profile.yaml 来(非硬编),含一套完整的 deck 节奏(封面/目录/章节页/内容页/
@@ -16,7 +16,7 @@ profile.yaml 来(非硬编),含一套完整的 deck 节奏(封面/目录/章节�
 """
 import sys, os
 HERE = os.path.dirname(os.path.abspath(__file__))
-# tech-training-deck/scripts(本 skill 的 scripts):本文件在 templates/,往上一级是 skill 根
+# tech-gtm-training-deck/scripts(本 skill 的 scripts):本文件在 templates/,往上一级是 skill 根
 SKILL_ROOT = os.path.dirname(HERE)
 sys.path.insert(0, os.path.join(SKILL_ROOT, "scripts"))
 from slide_maker_path import find_slide_maker

@@ -1,6 +1,6 @@
 # Example: DeepSeek Harness 技术培训 deck
 
-这是一个**完整范例**,演示 `tech-training-deck` skill 的三段流水线如何从零走到一套领导培训 deck。它脱敏自一次真实工作(本地源码实测 + 本机应用核实 + 公开信息 → 培训 md → 模板品牌 PPT)。
+这是一个**完整范例**,演示 `tech-gtm-training-deck` skill 的三段流水线如何从零走到一套领导培训 deck。它脱敏自一次真实工作(本地源码实测 + 本机应用核实 + 公开信息 → 培训 md → 模板品牌 PPT)。
 
 > **本目录不含任何企业 .pptx 模板本体**(版权)。`profile.yaml` 是格式示例,颜色取自一个典型红主调政企模板的 theme clrScheme 作示范;同事用自己的模板跑 `inspect_and_profile.py` 生成自己的 profile。
 

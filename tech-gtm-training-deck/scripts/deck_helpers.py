@@ -5,7 +5,7 @@
 build 脚本:
     import sys, os
     sys.path.insert(0, find_slide_maker())          # deckkit/anim 在这(自动探测)
-    sys.path.insert(0, "<tech-training-deck>/scripts")
+    sys.path.insert(0, "<tech-gtm-training-deck>/scripts")
     import deckkit as dk
     from deck_helpers import Deck, set_title, num_circle, chap, card, para, notes
 

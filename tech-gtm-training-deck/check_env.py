@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""check_env.py — tech-training-deck 环境预检(只报告,不自动装)。
+"""check_env.py — tech-gtm-training-deck 环境预检(只报告,不自动装)。
 
 检查:
   1. slide-maker skill 是否已装(本 skill 的 Stage 3 依赖它提供 deckkit/anim/render/lint)
@@ -12,7 +12,7 @@
 """
 import sys, os, shutil
 
-SKILL_NAME = "tech-training-deck"
+SKILL_NAME = "tech-gtm-training-deck"
 SLIDE_MAKER_PATHS = [
     os.path.expanduser(r"~/.claude/skills/slide-maker/scripts/deckkit.py"),
     os.path.expanduser(r"~/.agents/skills/slide-maker/scripts/deckkit.py"),

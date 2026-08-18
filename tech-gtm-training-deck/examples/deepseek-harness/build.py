@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """build.py — DeepSeek Harness 培训 deck(示例,品牌色从 profile.yaml 读,非硬编)
 
-tech-training-deck skill 的 Stage 3 产物示例。复用 slide-maker 的 deckkit/anim,
+tech-gtm-training-deck skill 的 Stage 3 产物示例。复用 slide-maker 的 deckkit/anim,
 品牌色/字体/layout 从 profile.yaml 通过 deck_helpers.Deck 加载。
 
 跑通需:① 装好 slide-maker skill;② 把 TPL 改成你的 .pptx;③ profile.yaml 填好 semantic_contract。
 """
 import sys, os
 HERE = os.path.dirname(os.path.abspath(__file__))   # examples/deepseek-harness/
-SKILL_ROOT = os.path.dirname(os.path.dirname(HERE))  # tech-training-deck/
+SKILL_ROOT = os.path.dirname(os.path.dirname(HERE))  # tech-gtm-training-deck/
 sys.path.insert(0, os.path.join(SKILL_ROOT, "scripts"))   # 本 skill 的 scripts(含 slide_maker_path/load_profile/deck_helpers)
 from slide_maker_path import find_slide_maker
 sys.path.insert(0, find_slide_maker())   # slide-maker 的 scripts(deckkit/anim,自动探测)

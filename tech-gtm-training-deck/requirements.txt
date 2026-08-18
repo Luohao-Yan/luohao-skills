@@ -1,4 +1,4 @@
-# tech-training-deck 依赖 slide-maker skill(提供 deckkit/anim/render_deck/lint_deck)。
+# tech-gtm-training-deck 依赖 slide-maker skill(提供 deckkit/anim/render_deck/lint_deck)。
 # 本 skill 自身只需读 .pptx 与解析主题;渲染/lint 由 slide-maker 提供。
 # 列在这里供 check_env.py 预检 + 同事 pip install 参考。
 

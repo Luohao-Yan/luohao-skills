@@ -1,5 +1,5 @@
 ---
-name: tech-training-deck
+name: tech-gtm-training-deck
 description: >-
   Turn a technical subject into a leadership-ready training package: investigate
   the source (local code, installed apps, public info) → write a structured
@@ -98,8 +98,8 @@ both:
 npx skills add addsumtech/slides_maker -g -y
 
 # 2. this skill (replace <your-github-user> with your repo when published)
-npx skills add <your-github-user>/tech-training-deck -g -y
-#   or, before publishing:  git clone <repo> ~/.claude/skills/tech-training-deck/
+npx skills add <your-github-user>/tech-gtm-training-deck -g -y
+#   or, before publishing:  git clone <repo> ~/.claude/skills/tech-gtm-training-deck/
 
 # 3. verify + install python deps
 python check_env.py

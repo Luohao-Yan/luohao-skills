@@ -20,9 +20,9 @@ Source of truth for the deck; re-run to rebuild identically.
 """
 import sys, os
 HERE = os.path.dirname(os.path.abspath(__file__))
-# === 改成你机器上 tech-training-deck skill 的 scripts 目录 ===
-# (装了本 skill后,通常是 ~/.claude/skills/tech-training-deck/scripts 或 ~/.agents/skills/tech-training-deck/scripts)
-SKILL_SCRIPTS = r"<改成 tech-training-deck skill 的 scripts 目录>"
+# === 改成你机器上 tech-gtm-training-deck skill 的 scripts 目录 ===
+# (装了本 skill后,通常是 ~/.claude/skills/tech-gtm-training-deck/scripts 或 ~/.agents/skills/tech-gtm-training-deck/scripts)
+SKILL_SCRIPTS = r"<改成 tech-gtm-training-deck skill 的 scripts 目录>"
 sys.path.insert(0, SKILL_SCRIPTS)
 from slide_maker_path import find_slide_maker
 sys.path.insert(0, find_slide_maker())   # slide-maker 的 scripts(deckkit/anim,自动探测)

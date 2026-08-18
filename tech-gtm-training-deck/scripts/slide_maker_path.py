@@ -9,7 +9,7 @@ slide-maker 可能装在多处:npx skills 装 → ~/.agents + 符号链接到 ~/
 build 脚本用法:
     import sys, os
     HERE = os.path.dirname(os.path.abspath(__file__))
-    sys.path.insert(0, os.path.join(HERE, "<tech-training-deck>/scripts"))  # 本 skill 的 scripts
+    sys.path.insert(0, os.path.join(HERE, "<tech-gtm-training-deck>/scripts"))  # 本 skill 的 scripts
     from slide_maker_path import find_slide_maker
     sys.path.insert(0, find_slide_maker())   # slide-maker 的 scripts
     import deckkit as dk

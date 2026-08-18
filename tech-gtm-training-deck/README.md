@@ -1,4 +1,4 @@
-# tech-training-deck
+# tech-gtm-training-deck
 
 把一个技术主题，做成给领导的可视化培训材料：**调研 → 培训文档 → 模板品牌 PPT** 一条龙。
 
@@ -26,7 +26,7 @@
 npx skills add addsumtech/slides_maker -g -y
 
 # 2) 装本 skill
-npx skills add Luohao-Yan/luohao-skills@tech-training-deck -g -y
+npx skills add Luohao-Yan/luohao-skills@tech-gtm-training-deck -g -y
 #   或直接 git clone:
 #   git clone https://github.com/Luohao-Yan/luohao-skills ~/.claude/skills/luohao-skills/
 
@@ -55,7 +55,7 @@ Claude 会按三段走：
 ## 仓库结构
 
 ```
-tech-training-deck/
+tech-gtm-training-deck/
 ├─ SKILL.md              # 主编排:三段工作流 + 触发条件 + 依赖声明
 ├─ references/           # 四篇方法论
 │  ├─ investigate.md     #   阶段1:源码实测+本机核实+公开信息,证据链,归属纠偏,不编造
