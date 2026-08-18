@@ -30,15 +30,63 @@ with a source trace, and think carefully at each step rather than rushing to out
 Read the four references below for the craft; treat the source-faithfulness contract
 and the critic loop as non-negotiable.
 
-## The three stages (this is the whole skill)
+## Stage 0 — Brief (interview before investigating)
+
+Before touching the source, **interview the user** so the deck's audience, depth,
+page count, and presentation choices are decided up-front, not guessed. This is
+the part the old version skipped — and it is what makes a deck land for *this*
+audience vs. a generic one.
+
+Run **3 rounds** of `AskUserQuestion` (the tool caps at 4 questions/round, 2-4
+options each). **Every item has a default** — the user can skip any round and the
+pipeline still runs. The interview is a chance to lock direction, not a gate.
+
+**Round 1 — direction** (4 questions)
+- *主题偏向 (tilt)*: 技术深度 / 高层愿景 / 平衡 — default 平衡(balanced)
+- *受众 (audience)*: 公司领导 / 技术团队 / 客户 / 混合 — default 公司领导(leaders)
+- *语言 (language)*: 中文 / 英文 / 双语 — default 中文(zh)
+- *模板来源 (template)*: 指定路径 / 用默认池(推荐) / 不用模板 — default 用默认池(auto)
+
+**Round 2 — skeleton** (4 questions)
+- *核心目的/故事线 (purpose)*: 自由文本(讲完记住/拍板什么) — default 由主题推导一句
+- *目标页数 (pages)*: 10-15 / 15-20 / 20+ — default 15-20
+- *内容侧重 (emphasis)*: 战略 / 架构 / 对比 / 操作 / 数据 / 平衡 — default 平衡(balanced)
+- *准确度与讲稿 (fidelity)*: 保留 file_path:line 证据 / 简化 / 极简 — default 保留证据(traced)
+
+**Round 3 — presentation + confirm** (2 questions)
+- *是否要动画 (animation)*: 要 appear-build / 静态 — default 要(true)
+- *访谈小结确认*: 把推导的 brief 摘要展示(含 need_arch_diagram 由 tilt 推导),选项 确认开始 / 我要改某项 — default 确认开始
+
+> `need_arch_diagram` 不单列成题——由 `tilt` 推导(tilt=tech→true,否则 false),在轮 3 确认题里展示给用户,可改。`need_network_topo` 默认 false,若用户在轮 2 提到网络拓扑或调研内容含网络/部署拓扑,由 Stage 1/2 置 true。
+
+**Product**: write `brief.yaml` to `<outdir>/brief.yaml` (13 fields). Use
+`scripts/brief.py`:
+```python
+import sys, os
+sys.path.insert(0, os.path.join("<tech-gtm-training-deck>", "scripts"))
+import brief
+data = brief.merge_with_defaults(answers_from_3_rounds)  # 缺失字段兜底
+brief.write_brief(data, os.path.join(data["outdir"], "brief.yaml"))
+```
+brief.yaml fields: `subject / tilt / audience / purpose / pages / animation / template / language / emphasis / fidelity / need_arch_diagram / need_network_topo / outdir`. See `scripts/brief.py` `DEFAULTS` for exact values.
+
+**Downstream stages read brief.yaml** — Stage 1 reads `tilt/audience/purpose/emphasis`
+to scope the investigation; Stage 2 reads `pages/emphasis/fidelity` for doc
+skeleton & evidence retention; Stage 3 reads `animation/template/language` +
+`need_arch_diagram/need_network_topo` to decide deck params and which figures
+to draw. If a field is missing, `brief.load_brief` falls back to defaults
+(never error) — see `scripts/brief.py`.
+
+## The four stages (this is the whole skill)
 
 | Stage | What it does | Where the method lives |
 |---|---|---|
+| **0. Brief** | Interview the user (3 rounds, all defaults skippable) → write `brief.yaml` (audience/tilt/pages/animation/template/language/emphasis/fidelity + need_arch_diagram/need_network_topo). Drives every later stage. | this file §Stage 0; `scripts/brief.py` |
 | **1. Investigate** | Read the source to line-level (local code, installed apps, public info); never fabricate; attach `file_path:line` to every claim. | `references/investigate.md` |
 | **2. Training doc** | Turn the investigation into a structured training `.md` (TL;DR → what is it → how it works → object inventory → why it matters → comparison → recommendations → evidence appendix). | `references/training-doc.md` |
 | **3. Deck from template** | Turn the doc + the user's `.pptx` template into a brand-consistent deck, via the **slide-maker** skill: inspect → profile → design gate → build → render → critic (2 rounds) → fix → gate(waived) → deliver. | `references/deck-from-template.md` |
 
-The three stages are one pipeline and one mind's job — do not split a single
+The four stages (Brief → Investigate → Training doc → Deck) are one pipeline and one mind's job — the Brief stage is up-front, the other three are the through-line. Do not split a single
 subject's investigation/document/deck across blind agents. Fan out only across
 *independent* investigation lines (different source types), then synthesize back
 into one mind before the doc. See `references/workflow.md` for the stage-to-stage
