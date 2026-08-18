@@ -33,7 +33,7 @@ from pptx.util import Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from load_profile import load
-from deck_helpers import Deck, set_title, num_circle, chap, card, para, notes
+from deck_helpers import Deck, set_title, num_circle, chap, card, para, notes, arch_layers, network_topo
 
 # --- 路径:你的模板与输出 ---
 TPL = r"<改为你自己的.pptx模板路径>"

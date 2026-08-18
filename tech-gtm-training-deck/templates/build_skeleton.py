@@ -28,7 +28,7 @@ from pptx.util import Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from load_profile import load
-from deck_helpers import Deck, set_title, num_circle, chap, card, para, notes
+from deck_helpers import Deck, set_title, num_circle, chap, card, para, notes, arch_layers, network_topo
 
 # === 你的模板与输出 ===
 TPL = r"<改为你自己的.pptx模板路径>"
@@ -131,6 +131,29 @@ def build():
     s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")])
     set_title(s, "附录·证据出处", D.anchor)
     notes(s, "<证据出处:按来源分组列 file_path:line。>")
+
+    # -------- (可选) 分层架构图页 / 网络拓扑图页 --------
+    # brief.need_arch_diagram / brief.tilt=tech 时画一页架构图:
+    #   s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")])
+    #   set_title(s, "技术架构", D.anchor)
+    #   arch_layers(s, [
+    #       {"name":"接入层","items":["Web","App"],"height":0.8},
+    #       {"name":"服务层","items":["svcA","svcB","svcC"],"height":1.4},
+    #       {"name":"存储层","items":["DB"],"height":0.7},
+    #   ], x=0.4, y=1.4, w=12.5, total_h=4.6, accent=D.neutral)
+    #   notes(s, "分层架构:从上到下 接入→服务→存储。")
+    # brief.need_network_topo 或 doc 含网络/部署拓扑 时画一页拓扑:
+    #   s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")])
+    #   set_title(s, "网络拓扑", D.anchor)
+    #   network_topo(s,
+    #     nodes=[{"id":"net","kind":"cloud","x":0.5,"y":0.1,"label":"Internet"},
+    #            {"id":"fw","kind":"firewall","x":0.5,"y":0.4,"label":"防火墙"},
+    #            {"id":"sw","kind":"switch","x":0.5,"y":0.7,"label":"交换机"},
+    #            {"id":"s1","kind":"server","x":0.2,"y":0.95,"label":"应用"}],
+    #     links=[{"from":"net","to":"fw","label":"专线"},{"from":"fw","to":"sw"},
+    #            {"from":"sw","to":"s1","label":"千兆"}],
+    #     accent=D.neutral)
+    #   notes(s, "网络拓扑:Internet→防火墙→交换机→服务器。")
 
     dk.lint_layout(prs, strict=True)
     prs.save(OUT)
