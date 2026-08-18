@@ -13,3 +13,7 @@ extracted/
 *.pptx
 !examples/**/*.pptx.example
 profile.local.yaml
+
+# 测试产物
+tests/*.pptx
+tests/render/
