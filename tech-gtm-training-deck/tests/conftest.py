@@ -7,6 +7,7 @@ sys.path.insert(0, SKILL_SCRIPTS)
 from slide_maker_path import find_slide_maker
 sys.path.insert(0, find_slide_maker())
 import deckkit as dk  # noqa: E402
+dk.EAFONT = "Microsoft YaHei"   # 裸测试无 profile,显式设 CJK 字体避免 CJK_NO_EA
 from pptx import Presentation  # noqa: E402
 from pptx.util import Inches  # noqa: E402
 

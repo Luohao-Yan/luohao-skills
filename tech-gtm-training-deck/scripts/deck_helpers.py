@@ -172,3 +172,54 @@ def arch_layers(slide, layers, x=0.4, y=1.4, w=12.5, total_h=5.2,
         cy_list.append((x + w / 2, cur_y + h / 2))
         cur_y += h
     return cy_list
+
+
+# ---- 网络拓扑图 (network_topo) ----
+def _icon_path(kind):
+    """assets/icons/<kind>.png 的绝对路径(相对本 skill 根)。不存在返回 None。"""
+    here = os.path.dirname(os.path.abspath(__file__))
+    p = os.path.join(os.path.dirname(here), "assets", "icons", f"{kind}.png")
+    return p if os.path.isfile(p) else None
+
+def network_topo(slide, nodes, links, x=0.5, y=1.4, w=12.3, h=5.3,
+                 accent=None, font=None, icon_size=0.5):
+    """网络拓扑图。nodes=[{id,kind,x,y,label,sub?}] (x,y 为 0..1 相对坐标);
+    links=[{from,to,label?,style?,arrow?}]。
+    用 deckkit connect_boxes 边到边精准连线(不穿节点);图标从 assets/icons/<kind>.png 读,
+    缺失则降级为形状节点(圆角矩形+kind 文字)。颜色/字体从 accent/font 来。
+    返回 {id: ((cx,cy), rect)} 供外部追加连线。"""
+    accent = accent or RGBColor(0x3F, 0x54, 0x69)
+    ea = font or dk.EAFONT
+    ink = RGBColor(0x2A, 0x2A, 0x33)
+    # 节点尺寸(图标 + 标签)
+    nw, nh = icon_size + 0.6, icon_size + 0.5
+    rects = {}
+    # 1. 先算所有节点 rect(供连线),再画连线(画在节点下),再画节点(盖上)
+    for nd in nodes:
+        nx = x + nd["x"] * (w - nw)
+        ny = y + nd["y"] * (h - nh)
+        rects[nd["id"]] = (nx, ny, nw, nh)
+    # 2. 连线(z-order: 先连线)
+    for lk in links:
+        a = rects[lk["from"]]; b = rects[lk["to"]]
+        kw = {"style": lk.get("style","solid"), "color": accent, "width": 1.4,
+              "label": lk.get("label",""), "arrow": lk.get("arrow", True)}
+        dk.connect_boxes(slide, a, b, **kw)
+    # 3. 节点(z-order: 后画,盖住连线 seam)
+    for nd in nodes:
+        nx, ny, nw2, nh2 = rects[nd["id"]]
+        ip = _icon_path(nd["kind"])
+        if ip:
+            dk.icon(slide, ip, nx + (nw2 - icon_size)/2, ny + 0.06, icon_size, disc=accent)
+        else:
+            # 降级:圆角矩形 + kind 文字
+            dk.box(slide, nx, ny, nw2, nh2, fill=RGBColor(0xFF,0xFF,0xFF),
+                   line=accent, line_w=1.2, round=True, r=0.08)
+            dk.text(slide, nx, ny+0.02, nw2, 0.3,
+                    [[(nd["kind"], 9, accent, True, False, ea)]],
+                    align=PP_ALIGN.CENTER, wrap=False)
+        # 标签(图标下方)
+        dk.text(slide, nx, ny + nh2 - 0.26, nw2, 0.24,
+                [[(nd.get("label",""), 10, ink, True, False, ea)]],
+                align=PP_ALIGN.CENTER, wrap=False)
+    return {nid: ((r[0]+r[2]/2, r[1]+r[3]/2), r) for nid, r in rects.items()}
