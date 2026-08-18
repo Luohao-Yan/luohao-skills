@@ -158,6 +158,24 @@ pip install -r requirements.txt
 LibreOffice for rendering?) and prints the exact fix command per OS. It only
 reports — it never auto-installs.
 
+## Default template pool
+
+When the user picks `template: auto` (the default in Stage 0), the skill inspects
+the **first existing** of these two templates to derive `profile.yaml`. They are
+the same brand style (金山云 red-accent 政企 template: accent1 #E6002D, 微软雅黑,
+13.333×7.5, identical layout roles), so no tilt-based picking — first-available wins.
+
+```
+默认模板池(同风格,template=auto 时取首个可用者):
+  1. C:\Users\KC\orca\projects\Pre-seles-architect-scheme\output\deepseek-harness培训\DeepSeek-Harness能力培训.pptx
+  2. C:\Users\KC\Documents\AI热点技术培训 - 智能体记忆系统v1.0.pptx
+```
+
+If neither exists, fall back to `template: none` (slide-maker designs from scratch)
+and tell the user "未找到默认模板，已用内置风格". These paths are **this author's
+machine defaults** — forkers should edit this list to their own brand templates.
+The list lives here (not in code) so it's easy to edit without touching Python.
+
 ## Overview routing (where things live)
 
 | Concern | Route to |
@@ -167,6 +185,9 @@ reports — it never auto-installs.
 | Stage 3 method (template branch: inspect→profile→design gate→build→render→critic→gate→deliver; gate+waiver; **7 real failure modes**: brand-color drift, hard-coded slide-maker path, chapter-page contrast, bottom_callout overlap, callout floating-too-high, lint-blind box overlap, text-list-where-a-diagram-belongs) | `references/deck-from-template.md` |
 | **Reusable deck编排样板** (color semantic contract for any accent → page-type sequence → signature move pattern → visual vocabulary; brand-cleared, for high-density training decks) | `references/deck-reference-layout.md` |
 | Stage-to-stage handoff; what's mechanical vs. needs human judgment | `references/workflow.md` |
+| Stage 0 product: read/write `brief.yaml` + defaults | `scripts/brief.py` |
+| Layered architecture diagram helper (`arch_layers`) | `scripts/deck_helpers.py` |
+| Network topology diagram helper (`network_topo`, with built-in `assets/icons/`) | `scripts/deck_helpers.py` |
 | Inspect a user `.pptx` → emit `profile.yaml` + `profile.md` | `scripts/inspect_and_profile.py` |
 | Load `profile.yaml` into build-time color/font constants (no hand-copied hex) | `scripts/load_profile.py` |
 | Reusable deck helpers (set_title / num_circle / chap / card / notes), colors from profile | `scripts/deck_helpers.py` |
@@ -176,3 +197,21 @@ reports — it never auto-installs.
 
 When the overview table doesn't route a concern, read `references/workflow.md` first
 (the stage handoff), then the specific stage reference.
+
+## Figure helpers — when to draw architecture / topology
+
+Two helpers in `scripts/deck_helpers.py` cover the technical-depth figures this
+skill previously couldn't draw:
+
+- **`arch_layers(slide, layers, ...)`** — layered architecture diagram (full-width
+  color bands + component blocks, alternating tints). Draw it when
+  `brief.need_arch_diagram is True` (i.e. `tilt=tech` unless overridden) AND the
+  doc's "how it works / architecture" section has architecture content. One page.
+- **`network_topo(slide, nodes, links, ...)`** — network topology (icon nodes +
+  edge-to-edge connectors, no line crosses a node). Draw it when
+  `brief.need_network_topo is True` OR the doc covers network/deploy topology.
+  Icons come from the built-in `assets/icons/` (offline, no Chrome needed at runtime).
+
+Both reuse slide-maker's deckkit (`node`/`connect_boxes`/`box`) — colors/fonts come
+from `profile.yaml` via `deck_helpers.Deck`. See `scripts/deck_helpers.py` for
+signatures and `tests/test_arch_layers.py` / `tests/test_network_topo.py` for usage.
