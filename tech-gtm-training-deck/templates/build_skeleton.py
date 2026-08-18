@@ -28,7 +28,9 @@ from pptx.util import Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from load_profile import load
-from deck_helpers import Deck, set_title, num_circle, chap, card, para, notes, arch_layers, network_topo
+from deck_helpers import (Deck, set_title, num_circle, chap, card, para, notes,
+                          arch_layers, network_topo, cover, strip_branding,
+                          quad_grid, steps3, code_card, text_right_card)
 
 # === 你的模板与输出 ===
 TPL = r"<改为你自己的.pptx模板路径>"
@@ -42,24 +44,16 @@ CARDBG = RGBColor(0xF7,0xF7,0xFA)
 
 def build():
     prs = dk.open_template(TPL)
+    strip_branding(prs)   # 清模板自带的企业 logo 图 + 版权页脚文字(build 前必做)
 
-    # -------- 1. 封面 (cover layout) --------
-    s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("cover")])
-    try:
-        t = s.placeholders[0]; t.text = "<主标题>"
-        for p in t.text_frame.paragraphs:
-            for r in p.runs:
-                r.font.size = Pt(40); r.font.bold=True; r.font.color.rgb=WHITE; r.font.name=dk.EAFONT
-                dk._apply_ea(r, dk.EAFONT)
-    except Exception: pass
-    for pidx, txt in [(10,"<副标题:主题·关键词>"),(11,"<单位·日期>")]:
-        try:
-            ph = s.placeholders[pidx]; ph.text = txt
-            for p in ph.text_frame.paragraphs:
-                for r in p.runs:
-                    r.font.name = dk.EAFONT; dk._apply_ea(r, dk.EAFONT)
-        except Exception: pass
-    notes(s, "<开场:一句话讲清今天要讲什么、为什么对听众重要。>")
+    # -------- 1. 封面 (cover helper:有设计的封面,非裸填占位符) --------
+    cover(prs, D,
+          subject="<断言式主标题:讲清是什么>",
+          subtitle="<故事线:讲完听众该记住/拍板什么>",
+          meta="<受众> · <日期>",
+          style="band")   # band=左色带+左对齐(稳) / hero=大渐变色块+居中(愿景)
+    # cover 的讲者备注(cover 不返回 slide,补 notes 用第一页)
+    notes(prs.slides._sldIdLst[0].slide, "<开场:一句话讲清今天要讲什么、为什么对听众重要。>")
 
     # -------- 2. 目录 (content layout) --------
     s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")])
@@ -98,6 +92,47 @@ def build():
         dk.text(s, x+0.18, y+1.5, w-0.36, 0.7, [[(feat, 13, RGBColor(0x2A,0x2A,0x33), False, False, dk.EAFONT)]], line_spacing=1.2)
     dk.bottom_callout(s, 0.5, W_IN-1.0, "<关键提示>", "<一句话纠偏或强调>", label_c=D.anchor, body_c=RGBColor(0x20,0x26,0x30))
     notes(s, "<这张表的讲解:逐卡点出归属/形态/要点,最后纠偏。>")
+
+    # -------- 4b. 四宫格页型 (quad_grid:2×2 对比/分类) --------
+    s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")])
+    set_title(s, "<分类标题:四类是什么>", D.anchor)
+    quad_grid(s, D, [
+        {"tab":"<类1标签>","head":"<类1名>","body":"<类1定义与要点>"},
+        {"tab":"<类2标签>","head":"<类2名>","body":"<类2定义与要点>"},
+        {"tab":"<类3标签>","head":"<类3名>","body":"<类3定义与要点>"},
+        {"tab":"<类4标签>","head":"<类4名>","body":"<类4定义与要点>"},
+    ])
+    notes(s, "<四类对比:逐格讲,红橙交替区分>")
+
+    # -------- 4c. 三步走页型 (steps3:落地路径/阶段) --------
+    s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")])
+    set_title(s, "<路径标题:三步走/三阶段>", D.anchor)
+    steps3(s, D, [
+        {"tag":"Step 1 <阶段名>(<周期>)","head":"<阶段目标>","body":"<阶段动作要点>"},
+        {"tag":"Step 2 <阶段名>(<周期>)","head":"<阶段目标>","body":"<阶段动作要点>"},
+        {"tag":"Step 3 <阶段名>(<周期>)","head":"<阶段目标>","body":"<阶段动作要点>"},
+    ])
+    notes(s, "<三步走:按阶段顺序讲,每阶段目标+动作>")
+
+    # -------- 4d. 左文右代码页型 (code_card:原理+代码示例) --------
+    s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")])
+    set_title(s, "<实现标题:某机制怎么实现>", D.anchor)
+    code_card(s, D,
+              left_title="<机制/原理>",
+              left_body="<左栏讲机制原理,多行>",
+              code_title="<快速上手代码示例>",
+              code_lines=["# 注释", "import xxx", "xxx.init()"])
+    notes(s, "<左讲原理右给代码,代码卡深色底>")
+
+    # -------- 4e. 左文右大卡页型 (text_right_card:左文右架构/方案) --------
+    s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("content")])
+    set_title(s, "<方案标题:核心场景+实现>", D.anchor)
+    text_right_card(s, D,
+                    left_title="<核心场景>",
+                    left_body="<左栏讲场景/诉求>",
+                    right_title="<实现方案/架构>",
+                    right_body="<右卡放架构描述或图说明>")
+    notes(s, "<左场景右方案,右卡可换 arch_layers 画架构图>")
 
     # -------- 5. 深色关键发现页 (dark layout) --------
     s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("dark")])

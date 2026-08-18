@@ -158,23 +158,57 @@ pip install -r requirements.txt
 LibreOffice for rendering?) and prints the exact fix command per OS. It only
 reports — it never auto-installs.
 
-## Default template pool
+## Template pool & brand-less palettes
 
-When the user picks `template: auto` (the default in Stage 0), the skill inspects
-the **first existing** of these two templates to derive `profile.yaml`. They are
-the same brand style (金山云 red-accent 政企 template: accent1 #E6002D, 微软雅黑,
-13.333×7.5, identical layout roles), so no tilt-based picking — first-available wins.
+The `template` field (set in Stage 0) resolves via `scripts/template_pool.py`:
+
+| `template` 值 | 行为 |
+|---|---|
+| `auto` (default) | 取默认池首个存在的 `.pptx` |
+| `<style 名>` (如 `red-gov`) | 取池中该风格名对应的 `.pptx` |
+| `builtin:<名>` (如 `builtin:slate-business`) | 不用 `.pptx`,用 `scripts/builtin_palettes.py` 的内置无品牌配色 |
+| `<路径>` | 该 `.pptx`(存在与否交给 inspect 报错) |
+| `none` | None(slide-maker 从零设计) |
 
 ```
-默认模板池(同风格,template=auto 时取首个可用者):
-  1. C:\Users\KC\orca\projects\Pre-seles-architect-scheme\output\deepseek-harness培训\DeepSeek-Harness能力培训.pptx
-  2. C:\Users\KC\Documents\AI热点技术培训 - 智能体记忆系统v1.0.pptx
+默认模板池(forker 改自己机器的模板路径 + 在 template_pool.STYLES 起风格名):
+  red-gov:     .../deepseek-harness培训/DeepSeek-Harness能力培训.pptx
+  red-gov-mem: C:\Users\KC\Documents\AI热点技术培训 - 智能体记忆系统v1.0.pptx
+内置无品牌配色(scripts/builtin_palettes.py,template=none/builtin: 时用):
+  slate-business  藏青商务(深藏青+琥珀+金)
+  ink-data        深墨数据(深墨蓝+青+橙)
 ```
 
-If neither exists, fall back to `template: none` (slide-maker designs from scratch)
-and tell the user "未找到默认模板，已用内置风格". These paths are **this author's
-machine defaults** — forkers should edit this list to their own brand templates.
-The list lives here (not in code) so it's easy to edit without touching Python.
+These paths are **this author's machine defaults** — forkers should edit the list in
+`scripts/template_pool.py` (`DEFAULT_POOL` + `STYLES`) to their own brand templates, and
+can add built-in palettes in `scripts/builtin_palettes.py`. The list lives in code (not
+this doc) so it's one place to edit.
+
+**Branding is stripped automatically**: `strip_branding(prs)` runs right after
+`open_template`, removing inherited logo pics + copyright footers from every layout (see
+`## Cover & branding` below). So even `auto` no longer ships the template's 金山云 logo.
+If you genuinely need to keep a template's branding (e.g. an external-facing report on
+that company's own template), pass `keep_logo=True` — otherwise default is brand-cleared.
+
+## Cover & branding
+
+Two things the old version got wrong, both fixed in `scripts/deck_helpers.py`:
+
+- **`cover(prs, deck, subject, subtitle, meta, style=)`** — a *designed* cover (not bare
+  placeholder-filling). `band` (left gradient bar + left-aligned title) is the default;
+  `hero` (big gradient block + centered) for vision decks. Pulls `subject` as a
+  one-line assertion, `subtitle` as the story-line from `brief.purpose`, `meta` as
+  audience+date. Colors + gradient from profile (`anchor`/`comparator`), no template logo.
+- **`strip_branding(prs, keep_logo=False)`** — call once after `open_template`, before
+  adding any slide. Removes logo pictures (detected by position: upper-right region on a
+  13.33×7.5 canvas) and brand-text shapes (含 金山云/KSYUN/Copyright/北京金山云网络技术)
+  from every master + layout. Big decorative background images (e.g. chapter-page art)
+  are NOT removed — only small upper-right logos + copyright footers. `keep_logo=True`
+  skips it for the keep-branding case.
+
+Build skeleton (`templates/build_skeleton.py`) calls both: `strip_branding(prs)` then
+`cover(...)`. See `deck-from-template.md` §failure-modes for the "inherited template
+logo/branding" failure mode this fixes.
 
 ## Overview routing (where things live)
 
@@ -182,7 +216,7 @@ The list lives here (not in code) so it's easy to edit without touching Python.
 |---|---|
 | Stage 1 method (source tiers, evidence trace, attribution correction, parallel investigation) | `references/investigate.md` |
 | Stage 2 method (7-section doc skeleton, honest-limit pairing, evidence appendix) | `references/training-doc.md` |
-| Stage 3 method (template branch: inspect→profile→design gate→build→render→critic→gate→deliver; gate+waiver; **7 real failure modes**: brand-color drift, hard-coded slide-maker path, chapter-page contrast, bottom_callout overlap, callout floating-too-high, lint-blind box overlap, text-list-where-a-diagram-belongs) | `references/deck-from-template.md` |
+| Stage 3 method (template branch: inspect→profile→design gate→build→render→critic→gate→deliver; gate+waiver; **8 real failure modes**: brand-color drift, hard-coded slide-maker path, chapter-page contrast, bottom_callout overlap, callout floating-too-high, lint-blind box overlap, text-list-where-a-diagram-belongs, **inherited template logo/branding**) | `references/deck-from-template.md` |
 | **Reusable deck编排样板** (color semantic contract for any accent → page-type sequence → signature move pattern → visual vocabulary; brand-cleared, for high-density training decks) | `references/deck-reference-layout.md` |
 | Stage-to-stage handoff; what's mechanical vs. needs human judgment | `references/workflow.md` |
 | Stage 0 product: read/write `brief.yaml` + defaults | `scripts/brief.py` |
@@ -191,6 +225,13 @@ The list lives here (not in code) so it's easy to edit without touching Python.
 | Inspect a user `.pptx` → emit `profile.yaml` + `profile.md` | `scripts/inspect_and_profile.py` |
 | Load `profile.yaml` into build-time color/font constants (no hand-copied hex) | `scripts/load_profile.py` |
 | Reusable deck helpers (set_title / num_circle / chap / card / notes), colors from profile | `scripts/deck_helpers.py` |
+| **Designed cover** (`cover()`, band/hero styles, gradient, no template logo) | `scripts/deck_helpers.py` |
+| **Strip template branding** (`strip_branding()`, removes inherited logo pics + copyright footers) | `scripts/deck_helpers.py` |
+| **Content page-type helpers** (`quad_grid` 2×2 / `steps3` 三步走 / `code_card` 左文右代码 / `text_right_card` 左文右图) | `scripts/deck_helpers.py` |
+| Layered architecture diagram helper (`arch_layers`) | `scripts/deck_helpers.py` |
+| Network topology diagram helper (`network_topo`, with built-in `assets/icons/`) | `scripts/deck_helpers.py` |
+| Template pool (multi-style `.pptx`) + resolve `template` field (`auto`/style-name/`builtin:`/path/`none`) | `scripts/template_pool.py` |
+| Built-in brand-less palettes (slate-business / ink-data; for `template=none`/`builtin:`) | `scripts/builtin_palettes.py` |
 | Scaffold a new build script from a profile + page outline | `scripts/new_deck.py` |
 | A ready-to-edit build skeleton (reads profile.yaml, not hard-coded) | `templates/build_skeleton.py` |
 | A full worked example (investigation → doc → deck), sanitized | `examples/deepseek-harness/` |

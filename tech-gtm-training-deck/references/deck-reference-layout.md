@@ -35,7 +35,7 @@
 
 | # | 页型 | 内容角色 | 配色/形式 |
 |---|---|---|---|
-| 1 | 封面（cover layout） | 主题 + 副标题（N问/主线）+ 日期 | 主标题白/anchor，副标题 neutral |
+| 1 | 封面（`cover()` 自绘，非模板 logo 版式） | 断言主标题 + 故事线副标题 + 受众/日期 | 左渐变色带(band)/大渐变色块(hero),anchor→comparator 渐变,无模板 logo |
 | 2 | 三段目录（3-col） | 把领导关心的 N 问作骨架，每栏一 PART + 一句问句 | 三栏分别用 anchor/comparator/neutral 色条 |
 | 3 | 章节页 ×N | PART 分隔 | 模板章节 layout；深色背景白字 → `chap()` 加半透明深衬底（修对比坑） |
 | 4 | 归属/对比表（4-card 或 table） | 「X 是谁的 / 含什么 / 不含什么」速查 | 每卡顶色条 = 该卡归属色 |
@@ -52,6 +52,22 @@
 | 15 | 附录（证据出处） | 按来源分组 | 小字、neutral 分组标签 |
 
 > **节奏原则**：别让一种页型连出现两次。归属表(4-card)后接双栏(2-col)，深色页后接浅色公式页，堆叠图后接插槽图——形式交替才不疲劳。signature move 是全 deck 视觉峰值，放第 10 页左右，前后用结构图铺垫和承接（`carried_by`）。
+
+## 内容页型 helper 速查（`scripts/deck_helpers.py`）
+
+骨架表里的页型都有现成 helper，配色全走 profile（换主色→全 deck 跟着变）：
+
+| 页型 | helper | 用法要点 |
+|---|---|---|
+| 封面 | `cover(prs, D, subject, subtitle, meta, style="band"/"hero")` | 断言主标题 + 故事线 + 受众日期；渐变从 profile；**别再裸填 cover 版式占位符** |
+| 四宫格(2×2) | `quad_grid(slide, D, [{tab,head,body},…]×4)` | 四分类/对比，红橙交替边框 + tab 角标 |
+| 三步走 | `steps3(slide, D, [{tag,head,body},…]×3)` | 落地路径/阶段，顶部 Step 色条 |
+| 左文右代码 | `code_card(slide, D, left_title, left_body, code_title, code_lines)` | 原理 + 代码示例，右卡深色底 |
+| 左文右图/架 | `text_right_card(slide, D, …, right_title, right_body)` | 场景 + 方案，右卡可换 `arch_layers` |
+| 分层架构 | `arch_layers(slide, layers)` | 全宽色带分层 + 组件块 |
+| 网络拓扑 | `network_topo(slide, nodes, links)` | 图标节点 + 边到边连线 |
+
+> 这些 helper 抽自真实模板页骨架（如记忆培训 deck 的 slide7 四宫格 / slide22 三步走 / slide16 代码卡），不是凭空设计——照真实页型复刻，配色随 profile 变。
 
 ## signature move 范式
 

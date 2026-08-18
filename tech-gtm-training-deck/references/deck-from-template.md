@@ -73,11 +73,19 @@ reusable helpers from `scripts/deck_helpers.py`:
 - `card`, `para`, `notes` — thin semantic wrappers over `dk.box` / run-tuples /
   `dk.speaker_notes`.
 
-The build rhythm (proven, theme-independent): `dk.open_template(TPL)` → per slide
-`add_slide(layout_idx)` → `set_title` → `dk.columns/rows/content_band` to get the
-safe rect → `card` + `dk.text` + `num_circle` + `dk.bottom_callout` → optional
+The build rhythm (proven, theme-independent): `dk.open_template(TPL)` → **`strip_branding(prs)`** (clear the template's inherited logo + copyright footers — see the "inherited template logo/branding" failure mode below) → **`cover(prs, D, subject, subtitle, meta, style=)`** for the designed cover (not bare placeholder-filling) → per content slide `add_slide(layout_idx)` → `set_title` → `dk.columns/rows/content_band` to get the
+safe rect → `card` + `dk.text` + `num_circle` + `dk.bottom_callout` (or a page-type helper:
+`quad_grid`/`steps3`/`code_card`/`text_right_card`) → optional
 `Build.step()` for appear-builds on multi-step slides → `notes` (speaker script) →
 `dk.lint_layout(prs, strict=True)` → `prs.save(OUT)`.
+
+**Page-type helpers** (in `scripts/deck_helpers.py`, abstracted from real template
+page skeletons — colors from profile, so re-theme changes all of them):
+- `cover(...)` — designed cover, `band`/`hero` styles, gradient from profile, no logo.
+- `quad_grid(slide, deck, items)` — 2×2 four-card (tab + head + body), for classifications.
+- `steps3(slide, deck, steps)` — three vertical columns with Step-label header bands, for landing paths / phases.
+- `code_card(slide, deck, left_title, left_body, code_title, code_lines)` — left prose + right dark code card.
+- `text_right_card(slide, deck, left_title, left_body, right_title, right_body)` — left prose + right large card (architecture / scheme).
 
 **Put full sentences in `notes`, phrases on the slide.** The deck is a visual aid
 for a speaker; the narration lives in speaker notes (Stage-2 doc → on-slide phrase
@@ -253,6 +261,35 @@ The fix (validated, on the reference deck's Cordis and plugin-tree slides):
 Rule of thumb: **if a reader could redraw the relationships from your slide, you drew
 a diagram; if they can only read the items, you drew a list.** Training decks that
 explain an architecture must pass the redraw test on the architecture slides.
+
+## The inherited template logo/branding (a real failure mode)
+
+`dk.open_template` keeps the template's **masters + layouts** (it only deletes slides) —
+and many corporate templates carry the company **logo picture** (upper-right, ~1.0×0.32in)
+and **copyright footer text** ("北京金山云网络技术有限公司 / WWW.KSYUN.COM / Copyright")
+on those layouts. Every slide you add inherits them — so your deck ships with someone
+else's brand on every page, which is exactly what a brand-clear skill must not do. This
+was the previous version's bug: the build only filled placeholders and never touched the
+inherited branding.
+
+The fix (validated): call **`strip_branding(prs)`** once right after `open_template`,
+before adding any slide. It walks every master + layout, removes pictures in the
+upper-right region (position-based: `left > W*0.79 and top < H*0.13`, small size — so the
+chapter page's large decorative background image is **not** removed, only small logos)
+and removes text shapes containing brand keys (`金山云/KSYUN/Copyright/北京金山云网络技术/…`).
+`keep_logo=True` skips it for the rare keep-branding case (an external-facing report on
+that company's own template).
+
+The companion fix: use **`cover(prs, D, subject, subtitle, meta, style=)`** instead of
+filling the cover layout's placeholders. The template's cover layout *is* the logo page;
+even after `strip_branding` it's an empty logo shell. `cover()` draws on the blank layout
+instead — a designed cover (gradient band/bar + assertion title + story-line subtitle +
+audience/date), colors from profile, no inherited brand. `band` (default, left bar +
+left-aligned) or `hero` (big gradient block + centered).
+
+Pair them: `prs = dk.open_template(TPL)` → `strip_branding(prs)` → `cover(prs, D, ...)`.
+Eyeball the first slide's render after build — if a logo is still there, `strip_branding`
+missed it (different canvas size / logo position) and you extend its detection thresholds.
 
 ## What Stage 3 does NOT do
 - Re-investigate (Stage 1) or re-structure the argument (Stage 2) — it projects the

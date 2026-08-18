@@ -18,7 +18,8 @@ from pptx.util import Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from load_profile import load
-from deck_helpers import Deck, set_title, num_circle, chap, card, para, notes, bottom_callout_at
+from deck_helpers import (Deck, set_title, num_circle, chap, card, para, notes,
+                          bottom_callout_at, cover, strip_branding)
 
 TPL = r"<改为你自己的.pptx模板路径>"   # 例:r"C:/Users/.../某企业模板.pptx"
 OUT = os.path.join(HERE, "training-deck.pptx")
@@ -35,23 +36,14 @@ DEEP = RGBColor(0xC6,0x00,0x00)
 
 def build():
     prs = dk.open_template(TPL)
+    strip_branding(prs)   # 清模板自带企业 logo + 版权页脚(品牌清零)
 
-    # 1 封面
-    s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("cover")])
-    try:
-        t = s.placeholders[0]; t.text = "DeepSeek Harness 能力培训"
-        for p in t.text_frame.paragraphs:
-            for r in p.runs:
-                r.font.size = Pt(40); r.font.bold=True; r.font.color.rgb=WHITE; r.font.name=dk.EAFONT
-                dk._apply_ea(r, dk.EAFONT)
-    except Exception: pass
-    for pidx, txt in [(10,"三问三追问 · 一切皆插件 · 模型底座之争"),(11,"2026/08/17")]:
-        try:
-            ph = s.placeholders[pidx]; ph.text = txt
-            for p in ph.text_frame.paragraphs:
-                for r in p.runs:
-                    r.font.name = dk.EAFONT; dk._apply_ea(r, dk.EAFONT)
-        except Exception: pass
+    # 1 封面(cover helper:有设计的封面,非裸填模板 logo 版式)
+    s = cover(prs, D,
+              subject="DeepSeek Harness 能力培训",
+              subtitle="三问三追问 · 一切皆插件 · 模型底座之争",
+              meta="公司领导 · 2026/08/17",
+              style="band")
     notes(s, "开场:今天用十几分钟,讲清 DeepSeek 开源的 Harness 是什么、为什么重要。")
 
     # 2 目录(三问骨架)

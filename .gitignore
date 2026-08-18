@@ -13,3 +13,10 @@ extracted/
 *.pptx
 !**/*.pptx.example
 profile.local.yaml
+
+# BEGIN KCWork auto-injected skill symlinks (managed — do not commit)
+.claude/skills/cron
+.claude/skills/kcwork-config
+.claude/skills/officecli
+.claude/skills/skill-creator
+# END KCWork auto-injected skill symlinks
