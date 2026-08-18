@@ -107,3 +107,68 @@ def para(txt, size=14, color=None, bold=False, font=None, ea=None):
 def notes(slide, txt):
     """写讲者备注(讲稿)。不在幻灯片上渲染,只在演示视图显示。"""
     dk.speaker_notes(slide, txt)
+
+
+# ---- 分层架构图 (arch_layers) ----
+# 复刻珠海项目孵化 PPT p05 画法:全宽色带分层 + 层内组件块 + 交替浅色
+ARCH_TINTS = [  # colored 风格的 5 色浅色梯度循环
+    RGBColor(0xEF, 0xF6, 0xFF),  # 浅蓝
+    RGBColor(0xF0, 0xFD, 0xF4),  # 浅绿
+    RGBColor(0xFF, 0xF7, 0xED),  # 浅橙
+    RGBColor(0xED, 0xE9, 0xFE),  # 浅紫
+    RGBColor(0xCC, 0xFB, 0xF1),  # 浅青
+]
+ARCH_MONO_TINT = RGBColor(0xF3, 0xF4, 0xF6)
+ARCH_COMPONENT_FILL = RGBColor(0xFF, 0xFF, 0xFF)  # 组件块白底
+ARCH_DARK_CAP = RGBColor(0x1F, 0x29, 0x37)        # 末层深色收尾(可选)
+
+def arch_layers(slide, layers, x=0.4, y=1.4, w=12.5, total_h=5.2,
+                style="colored", accent=None, font=None):
+    """分层架构图。layers=[{name,items:[...],height,color?},...]。
+    style: colored(多彩分层)/ mono(单色分层)。
+    返回各层中心点 [(cx,cy),...](供后续连线)。
+    画法:每层一条全宽色带(L=x,W=w,浅色),层名左上,层内组件块横向并排(白底+accent描边)。
+    超过6层:自动压缩高度并 print 提示建议拆页。"""
+    n = len(layers)
+    if n == 0:
+        return []
+    if n > 6:
+        print("[arch_layers] 层数较多(>6),建议拆页;已自动压缩层高")
+    sum_h = sum(L.get("height", 0.8) for L in layers)
+    if sum_h > total_h:
+        scale = total_h / sum_h
+    else:
+        scale = 1.0
+    accent = accent or RGBColor(0x3F, 0x54, 0x69)
+    ink = RGBColor(0x2A, 0x2A, 0x33)
+    ea = font or dk.EAFONT
+    cy_list = []
+    cur_y = y
+    for i, L in enumerate(layers):
+        h = L.get("height", 0.8) * scale
+        tint = L.get("color") or (ARCH_TINTS[i % len(ARCH_TINTS)] if style == "colored" else ARCH_MONO_TINT)
+        # 全宽色带
+        dk.box(slide, x, cur_y, w, h, fill=tint, round=True, r=0.06)
+        # 层名(左上)
+        dk.text(slide, x + 0.16, cur_y + 0.04, 2.4, 0.3,
+                [[(L.get("name", ""), 12, RGBColor(0x4B,0x55,0x63), True, False, ea)]], wrap=False)
+        # 层内组件块:横向均分
+        items = L.get("items", [])
+        if items:
+            pad = 0.16
+            inner_x = x + 2.6
+            inner_w = w - 2.6 - pad
+            gap = 0.12
+            cw = (inner_w - gap * (len(items) - 1)) / len(items)
+            ch = min(0.28, h - 0.16)
+            comp_y = cur_y + (h - ch) / 2
+            for j, it in enumerate(items):
+                cx = inner_x + j * (cw + gap)
+                dk.box(slide, cx, comp_y, cw, ch, fill=ARCH_COMPONENT_FILL,
+                       line=accent, line_w=1.0, round=True, r=0.05)
+                dk.text(slide, cx, comp_y, cw, ch,
+                        [[(it, 10.5, ink, False, False, ea)]],
+                        align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, wrap=False)
+        cy_list.append((x + w / 2, cur_y + h / 2))
+        cur_y += h
+    return cy_list
