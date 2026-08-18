@@ -11,6 +11,13 @@ concern, or when you're deciding whether to automate a step.
 ```
 user need
    │
+   ├─ Stage 0 BRIEF ──────────────────────────────────────────────┐
+   │   3 rounds AskUserQuestion (all defaults skippable)          │
+   │   → brief.yaml (13 fields: audience/tilt/pages/animation/      │
+   │     template/language/emphasis/fidelity/need_arch_diagram/    │
+   │     need_network_topo/outdir/subject/purpose)                 │
+   │   drives every later stage; missing fields fall back to defs  │
+   │                                                               ▼
    ├─ Stage 1 INVESTIGATE ────────────────────────────────────────┐
    │   fan out Explore agents across independent source lines      │
    │   (local code / installed apps / public-info / comparator)   │
@@ -34,6 +41,12 @@ user need
 Each stage's output is the next stage's input, and **each stage's contract must be
 met before passing forward** — Stage 2 doesn't start until Stage 1's claims are
 traced; Stage 3 doesn't start until the doc's skeleton is complete.
+
+**Brief.yaml is the shared input contract** — Stage 0 writes it; Stages 1–3 read
+the fields they need (`tilt/audience/purpose/emphasis` → Stage 1 scope;
+`pages/emphasis/fidelity` → Stage 2 doc; `animation/template/language` +
+`need_arch_diagram/need_network_topo` → Stage 3 deck + figures). Missing fields
+fall back to `brief.DEFAULTS` (see `scripts/brief.py`), never error.
 
 ## What's mechanical (automate / script) vs. needs human judgment
 
