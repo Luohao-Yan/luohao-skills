@@ -47,10 +47,11 @@ pip install -r requirements.txt
 - "把这份框架调研做成给团队的培训材料和 PPT"
 - "对比一下 A 和 B 两个产品，做个给领导的汇报"
 
-Claude 会按三段走：
-1. **调研**（用后台 agent 并行读源码/查本机应用/核实公开信息，每个结论附证据）
+Claude 会按四段走：
+0. **访谈**（3 轮,问清受众/故事线/页数/动画/模板/语言/侧重/准确度,全项默认可跳）→ 写 `brief.yaml`
+1. **调研**（用后台 agent 并行读源码/查本机应用/核实公开信息,每个结论附证据）
 2. **写培训 md**（7 节骨架 + 证据附录）
-3. **生成 deck**（探查你的 .pptx 模板 → 生成 profile → 设计 → build → 渲染 → critic 两轮 → 修 → 交付）
+3. **生成 deck**（按 brief 选模板/语言/动画;探查 .pptx → profile → 设计 → build → 渲染 → critic 两轮 → 修 → 交付;tilt=tech 时画分层架构图,需要时画网络拓扑图）
 
 ## 仓库结构
 
@@ -66,11 +67,14 @@ tech-gtm-training-deck/
 │  ├─ inspect_and_profile.py  # 探查.pptx→profile.yaml+profile.md(修配色漂移坑)
 │  ├─ load_profile.py     #   build脚本从profile.yaml加载品牌色(非硬编)
 │  ├─ deck_helpers.py     #   通用helper:set_title/num_circle/chap/card/notes
-│  └─ new_deck.py         #   生成build脚手架
+│  ├─ new_deck.py         #   生成build脚手架
+│  ├─ brief.py            #   Stage 0 产物 IO(brief.yaml 读写)
+│  └─ template_pool.py    #   默认模板池(template:auto 时离线兜底)
 ├─ templates/
 │  └─ build_skeleton.py   # build脚本模板(从profile读,含完整deck节奏)
 ├─ examples/
 │  └─ deepseek-harness/   # 完整脱敏范例(培训md + build + profile)
+├─ assets/icons/         # 内置网络设备图标(network_topo 离线用,9 PNG)
 └─ check_env.py / requirements.txt / LICENSE(MIT)
 ```
 
@@ -86,6 +90,9 @@ tech-gtm-training-deck/
 - **profile 机制修漂移坑**——`inspect_and_profile.py` 探查你的模板生成结构化 `profile.yaml`，build 脚本从 yaml 读配色/字体，不再人工抄硬编码（手工抄易与模板漂移）。
 - **门禁 + 豁免**——技术培训 deck 高密度，`.deck-gates.json` 的 `density.waived`/`provenance.waived` 记录书面豁免理由放行，而非降级成空洞 deck。layout criticals（溢出/越界）永不豁免。
 - **章节页对比修复**——深暖背景图上白字对比不足时，`deck_helpers.chap` 自动加半透明深色衬底条。
+- **Stage 0 前置访谈**——调研前 3 轮问清受众/故事线/页数/动画/模板等(全项默认可跳),产物 `brief.yaml` 驱动三段;不再靠猜。
+- **分层架构图 / 网络拓扑图**——`arch_layers()` 复刻政企模板分层画法;`network_topo()` 内置网络设备图标 + 边到边精准连线(deckkit `connect_boxes`),离线可用。
+- **默认模板池**——`template: auto` 时从两个内置金山云红模板取可用者,离线兜底(见 SKILL.md `## Default template pool`)。
 
 ## License
 
