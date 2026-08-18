@@ -42,6 +42,14 @@ def check_soffice():
             return True, p
     return False, None
 
+def check_icons():
+    """内置网络设备图标数(network_topo 用)。缺则 network_topo 降级为形状节点。"""
+    here = os.path.dirname(os.path.abspath(__file__))
+    d = os.path.join(here, "assets", "icons")
+    if not os.path.isdir(d):
+        return 0, d
+    return sum(1 for f in os.listdir(d) if f.endswith(".png")), d
+
 def main():
     ok = True
     print(f"{SKILL_NAME} environment check:\n")
@@ -83,6 +91,18 @@ def main():
     else:
         print(f"  [--]  LibreOffice (soffice) — PNG 渲染用;Stage 1-2 不需要")
         print(f"        Windows: 安装 LibreOffice | macOS: brew install --cask libreoffice | Linux: apt install libreoffice")
+
+    # 5. 内置网络图标
+    print()
+    n, d = check_icons()
+    if n >= 9:
+        print(f"  [ok]  内置网络图标 {n} 个 (assets/icons/)")
+    elif n > 0:
+        print(f"  [--]  内置网络图标仅 {n} 个 (期望约9);network_topo 将对缺失 kind 降级为形状节点")
+        print(f"        -> 在有 Chrome+联网的机器: set CHROME=... && python scripts/gen_icons.py")
+    else:
+        print(f"  [--]  assets/icons/ 为空(未生成);network_topo 降级为形状节点")
+        print(f"        -> 可选: 装 Chrome + 设 CHROME 环境变量,跑 python scripts/gen_icons.py 生成图标")
 
     print()
     if ok:
