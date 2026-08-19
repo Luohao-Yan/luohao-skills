@@ -13,7 +13,8 @@
 | 1 | 封面"没背景"——主体大片白底 | `cover(style="band")` 只画左侧 0.32in 窄色带,主体留白;docstring 主动"避免继承模板 logo 版式"而弃用模板封面 |
 | 2 | `style="hero"` 阴阳对半——上半色块下半白底,硬分界,且与白底内页不协调 | `cover(style="hero")` 画 `H*0.58` 色块 + 下半白底,机械对半;自绘配色与模板内页不同源 |
 | 3 | 主标题"龙岗政策打标"从未渲染——读图看到的"主标题"其实是副标题 | 填模板 layout 15 占位符时 `s.placeholders[0]` 取不到 idx0 占位符,抛 KeyError 被 `except Exception: pass` 静默吞掉 |
-| 4 | layout 15 自带的「图形 12」logo 图 strip_branding 没清到,要手动删 | `strip_branding` 只遍历 masters,不清 layout 级 shape |
+| 4 | layout 15 自带的「图形 12」logo 图 strip_branding 没清到,要手动删 | 调研修正:`strip_branding` 其实**已在遍历 layouts**(第 330 行 `targets = masters + layouts`),logo 确实会被清。但暴露了更深 bug——见 #5 |
+| 5 | **封面主标题占位符 idx0 被 strip_branding 误删**,导致 `placeholders[0]` 取不到(坑 #3 的真正根因) | idx0「标题 2」占位符默认文本是"金山云标准模板-大标题 38号",含"金山云"关键词,被 `_is_brand_text` 命中**连占位符 shape 一起删了**。strip 应只删非占位符的 brand text shape,占位符的默认文本由 cover 填时覆盖 |
 
 **共性**:skill 的 cover 哲学是"弃模板自绘",但自绘质量不如模板自带封面(渐变圆/点阵),且自绘/填占位符两条路都有 bug。模板自带封面是最稳的封面来源,却被弃用。
 
@@ -21,7 +22,7 @@
 
 1. **cover 哲学翻转**:优先用模板自带封面 layout(填占位符),用不上才回退自绘。模板封面质量高、与内页同源。
 2. **填占位符可靠**:cover 内部填占位符,取不到就自绘兜底,**绝不 `except: pass` 静默吞错**——取不到要 log + fallback。
-3. **strip_branding 扩到 layout 级**:同时清母版级 + 各 layout 级 logo 图/品牌文本,不再只清母版。
+3. **strip_branding 不删占位符**:调研发现它已在遍历 layouts,真正 bug 是误删含品牌词的占位符(idx0「标题 2」默认文本"金山云标准模板-大标题 38号"被当 brand text 删了,导致 #3)。改为删 brand text 时跳过 placeholder。
 4. **inspect 选占位符最丰富的封面 layout**:在候选里选占位符最多者(标题+副标题+日期优先),而非首个命中。
 
 两个低风险默认(不再追问):
@@ -54,18 +55,20 @@
   - hero:去掉 `H*0.58` 机械对半——改为整页渐变底(anchor 深色 → 透明),标题居中,无硬分界线(#2)。
 - 此路径是 fallback,默认不用。
 
-### 3.2 `strip_branding()` 扩 layout 级(`scripts/deck_helpers.py`)
+### 3.2 `strip_branding()` 不删占位符(`scripts/deck_helpers.py`)
 
-**现状**:`for master in prs.slide_masters: for layout in master.slide_layouts:` 只清母版继承的。实际 `strip_branding` 遍历 masters,但 layout 自带的 shape(非母版继承)不清。
+**现状**:`strip_branding` 第 330 行已 `targets = list(prs.slide_masters) + list(prs.slide_layouts)`——**已在遍历 layouts**,layout 级 logo 图(「图形 12」)本来就被清(实测:strip 删了 5 pics + 12 texts)。所以"扩 layout 级"不需要做。
+
+**真正的 bug**:`_is_brand_text` 命中后,连**占位符 shape 一起删**了。本例 idx0「标题 2」占位符默认文本"金山云标准模板-大标题 38号"含"金山云",被误删——这正是 #3 主标题丢失的根因(不是 `placeholders[0]` 取不到,是占位符被 strip 删了)。
 
 **改后**:
-- 遍历范围:`prs.slide_masters` 的每个 master + 该 master 的每个 `slide_layouts`——**对每个 layout 本身的 shapes 也跑 `_is_logo_pic` / `_is_brand_text` 清理**(不只是母版继承的)。
-- 判据不变:`_is_logo_pic`(右上角小图:`left > W*0.79 and top < H*0.13, w<1.6, h<0.7`)+ `_is_brand_text`(含 金山云/KSYUN/Copyright/北京金山云网络技术/金山软件/kingsoft/ksyun)。
-- 大装饰背景图(章节页点阵)仍保留——`_is_logo_pic` 的位置+尺寸判据已排除大图。
-- `keep_logo=True` 仍整体跳过。
-- 返回计数 `{pics, texts}` 含 layout 级清掉的。
+- 删 brand text 时**跳过占位符**:`if _is_brand_text(sh) and not sh.is_placeholder:` 才删。占位符的默认文本不该导致整个占位符被删——build 填占位符时会覆盖默认文本。
+- logo pic 删除逻辑不变(`_is_logo_pic` 只命中右上角小图,占位符不是 PICTURE,不会误删)。
+- 其余不变(`keep_logo=True` 跳过、大装饰图保留、返回计数)。
 
-**效果**:layout 15 的「图形 12」logo 被 strip 自动清,cover 不用手动删(#4 根治)。
+**效果**:strip 后 idx0「标题 2」占位符保留,cover 能 `placeholders[0]` 取到并填主标题(#3 根治)。layout 级 logo 仍被清(原行为不变)。
+
+**验证命令**:`python -c "import sys; sys.path.insert(0,'scripts'); from slide_maker_path import find_slide_maker; sys.path.insert(0,find_slide_maker()); import deckkit as dk; from deck_helpers import strip_branding; prs=dk.open_template(r'<TPL>'); strip_branding(prs); print([sh.placeholder_format.idx for sh in prs.slide_layouts[15].placeholders if sh.is_placeholder])"` 应输出 `[0, 10, 11]`。
 
 ### 3.3 `inspect` 选占位符最丰富的封面 layout(`scripts/inspect_and_profile.py`)
 
@@ -94,7 +97,7 @@ if any(k in n for k in ["标题幻灯片","标题页","Title Slide"]) and "cover
 
 | 文件 | 改动 |
 |---|---|
-| `scripts/deck_helpers.py` | `cover()` 翻转哲学 + 填占位符兜底 + 字号下限;`strip_branding()` 扩 layout 级 |
+| `scripts/deck_helpers.py` | `cover()` 翻转哲学 + 填占位符兜底 + 字号下限;`strip_branding()` 删 brand text 时跳过 placeholder(修误删 idx0) |
 | `scripts/inspect_and_profile.py` | `key_layouts()` cover role 选占位符最丰富者 |
 | `SKILL.md` | §Cover & branding / 失败模式段:哲学从"自绘避免 logo"改"优先模板+兜底" |
 | `references/deck-from-template.md` | "inherited template logo/branding" 失败模式段 + build rhythm 段同步 |
@@ -110,7 +113,7 @@ if any(k in n for k in ["标题幻灯片","标题页","Title Slide"]) and "cover
   - 用例 B:cover(use_template=True) + 占位符缺失(如 idx0 无 TITLE)→ 自绘兜底 + **不静默吞错**(捕获 log 或断言 slide 上有该文本)。
   - 用例 C:主标题字号 ≥44pt 下限。
   - 用例 D:use_template=False 仍工作(band/hero 不崩)。
-- **strip_branding 新用例**(可能新文件 `test_strip_branding.py`):优先用现有模板(其 layout 15 自带「图形 12」logo 图)断言 strip 后该 layout 的 logo shape 被清;若现有模板不便于断言,再造一个带 layout 级右上角小图的假模板。
+- **strip_branding 新用例**(可能新文件 `test_strip_branding.py`):用现有模板(其 layout 15 的 idx0 默认文本含"金山云"、且「图形 12」是 layout 级 logo)断言:strip 后 **idx0 占位符仍保留**(`[0,10,11]`),且「图形 12」logo 被清。这是 #3/#5 的回归保护。
 - **inspect 用例**(扩 `test_template_pool.py` 或新文件):对现有两个模板跑 inspect,断言 `cover` role = 占位符最丰富者(本模板 = 15,不是 11)。
 - 所有测试在 `D:\develop\luohao-skills\tech-gtm-training-deck` 跑 `pytest tests/` 通过。
 
