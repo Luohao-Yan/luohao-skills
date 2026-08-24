@@ -52,7 +52,7 @@ python ~/.claude/skills/slide-maker/scripts/render_deck.py training-deck.pptx re
 - **归属纠偏**(WorkBuddy=腾讯非DeepSeek、Pi=第三方但金山已采用)用本机实测破除市面误读
 - **signature move** 不是装饰,是论点本身做成几何
 - **门禁+豁免**:技术培训 deck 天然超 lint 的 40词/18pt 预算,带书面豁免理由放行而非降级成空洞 deck
-- **章节页对比修复**:深暖背景图上白字对比不足 → 加半透明深色衬底条(`deck_helpers.chap`)
+- **章节页**:`deck_helpers.chap` 填占位符不画衬底;模板白字不可读时 build 手画深色衬底条
 
 ## 照这个样板做自己的 deck
 

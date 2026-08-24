@@ -13,13 +13,15 @@
 
 模板探查出 `accent1..6` 后，把它们绑到**四个语义角色**（+ 一个可选深色页底）。这是「主题色 → 内容语义」的绑定层，机器无法推断，必须人填（`profile.yaml` 的 `semantic_contract`）。build 脚本通过 `D.anchor / D.comparator / D.neutral / D.emphasis` 取色。
 
-| 角色 | 语义 | 用在哪 | 选色指引 |
-|---|---|---|---|
-| `anchor` 主锚 | 本次主主题 / 核心结论 / 主标题 | 标题、主主题卡边框、编号圆、结论页底 | = 用户指定的主色（accent1） |
-| `comparator` 对比 | 对比对象 / 次要产品 / 另一条路线 | 对比产品卡、次要点 | 主色的**对比/互补**色（红→橙；蓝→橙/青；绿→琥珀/品红） |
-| `neutral` 中性 | 表头 / 中性说明 / 结构线 | 表头色条、分隔线、次要标签 | 深中性（深蓝灰/深石板/深墨绿），低饱和 |
-| `emphasis` 强调 | take-away / 关键句 / 金句 | callout label、关键发现高亮、结论金句 | 暖强调（金/橙黄/琥珀），高明度 |
-| `dark_bg` 深底(可选) | 深色关键发现页底 | 关键发现页背景 | 极深（近黑 + 主色调，如 `#2A1418`） |
+> **key 名要对**：`semantic_contract` 里填的 key 是 `anchor_subject`（不是 `anchor`）+ `comparator` / `neutral` / `emphasis`；build 脚本里取色的属性名是 `D.anchor`（不带 `_subject`）。两者差一个后缀——`semantic_contract` 的 key 必须用 `anchor_subject`，否则 `Deck.anchor` 取不到你绑的色（会回退到 accent1 默认）。不填 `semantic_contract` 时也能跑（回退 accent1..4 默认），但绑了才能按你的语义分配色。
+
+| `semantic_contract` key | build 属性 | 语义 | 用在哪 | 选色指引 |
+|---|---|---|---|---|
+| `anchor_subject` | `D.anchor` 主锚 | 本次主主题 / 核心结论 / 主标题 | 标题、主主题卡边框、编号圆、结论页底 | = 用户指定的主色（accent1） |
+| `comparator` | `D.comparator` 对比 | 对比对象 / 次要产品 / 另一条路线 | 对比产品卡、次要点 | 主色的**对比/互补**色（红→橙；蓝→橙/青；绿→琥珀/品红） |
+| `neutral` | `D.neutral` 中性 | 表头 / 中性说明 / 结构线 | 表头色条、分隔线、次要标签 | 深中性（深蓝灰/深石板/深墨绿），低饱和 |
+| `emphasis` | `D.emphasis` 强调 | take-away / 关键句 / 金句 | callout label、关键发现高亮、结论金句 | 暖强调（金/橙黄/琥珀），高明度 |
+| `dark_bg` | （深色页底,可选） | 深色关键发现页底 | 关键发现页背景 | 极深（近黑 + 主色调，如 `#2A1418`） |
 
 **不同主调的填法**（举例，以你探查出的实际 accent 为准，别抄 hex）：
 - **红主调政企**：anchor=主红 / comparator=橙 / neutral=深蓝灰 / emphasis=金 / dark_bg=深红黑
@@ -37,7 +39,7 @@
 |---|---|---|---|
 | 1 | 封面（`cover()` 自绘，非模板 logo 版式） | 断言主标题 + 故事线副标题 + 受众/日期 | 左渐变色带(band)/大渐变色块(hero),anchor→comparator 渐变,无模板 logo |
 | 2 | 三段目录（3-col） | 把领导关心的 N 问作骨架，每栏一 PART + 一句问句 | 三栏分别用 anchor/comparator/neutral 色条 |
-| 3 | 章节页 ×N | PART 分隔 | 模板章节 layout；深色背景白字 → `chap()` 加半透明深衬底（修对比坑） |
+| 3 | 章节页 ×N | PART 分隔 | `chap()` 填模板章节页占位符,不画衬底(信任模板设计);若模板白字不可读,build 时手画深色衬底条(见 deck-from-template.md §chapter-page contrast) |
 | 4 | 归属/对比表（4-card 或 table） | 「X 是谁的 / 含什么 / 不含什么」速查 | 每卡顶色条 = 该卡归属色 |
 | 5 | 双栏对比（2-col） | 直答「除了 X 还有什么」/ 两条路线 | 左右各一对比色，底部红字直答关键判断 |
 | 6 | 深色关键发现（dark layout） | 最值得汇报的一个发现 | dark_bg 底 + emphasis 高亮关键词 |
@@ -87,7 +89,7 @@ signature move = **把核心论点做成一个几何隐喻**，是全 deck 的�
 
 - **卡片 + 顶部色条**：`card()` + `dk.box(corners='top')` 顶色条 = 该卡归属色。最常用的「带归属的块」。
 - **编号渐变圆**：`num_circle()`，anchor→comparator 径向渐变，白字编号。用于步骤/要点。
-- **章节页深色衬底**：`chap()` 在模板章节 layout 的深色背景图上，给白字标题加半透明深色衬底条（修对比坑）。
+- **章节页**：`chap()` 填模板章节页占位符（标题+副标题）+ 打 CJK 字体 tag，**不画衬底**（信任模板设计语言）。若模板章节页白字确不可读，build 时手画半透明深色衬底条（见 deck-from-template.md §chapter-page contrast）。
 - **深色关键发现页**：模板 dark layout，`dark_bg` 底 + `emphasis` 高亮关键词 + 浅色正文。
 - **bottom_callout 贴底**：`bottom_callout_at(bottom_y=7.07)` 锚定显式底，全 deck 一致底边距（修悬浮坑；别用裸 `dk.bottom_callout`）。
 - **箭头堆叠**：层间 `dk.arrow(direction='down')` 表「上一层搭下一层 / 组合方向」。

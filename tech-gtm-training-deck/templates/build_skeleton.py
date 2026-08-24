@@ -71,8 +71,9 @@ def build():
             yy += 0.38
     notes(s, "<分几部分讲,为什么这个顺序。>")
 
-    # -------- 3. 章节页 (chapter layout, 自动加深色衬底修对比) --------
+    # -------- 3. 章节页 (chapter layout; chap 填占位符不画衬底,信任模板设计) --------
     chap(prs, D, "chapter", "01", "<第一部分标题>", sub="<关键词列表>")
+    # 可选:模板章节页白字不可读时,手画深色衬底条(见 deck-from-template.md §chapter-page contrast)
     notes(s, "<进入第一部分,为什么先讲这个。>")
 
     # -------- 4. 内容页范例 (content layout, 4-card) --------

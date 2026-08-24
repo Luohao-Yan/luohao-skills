@@ -25,6 +25,18 @@ except ImportError:
     raise SystemExit("load_profile 需要 PyYAML: pip install pyyaml")
 from pptx.dml.color import RGBColor
 
+# 语义角色 -> 默认 accent 映射。inspect_and_profile 生成的 profile.yaml 里
+# semantic_contract 是空 {},agent 若不填就 build,取 D.anchor(P.color("anchor_subject"))
+# 会 KeyError。这与 skill「missing -> default, never error」契约相悖。此处兜底:
+# 语义角色在 semantic_contract 里没绑时,回退到默认 accent,而不是崩。
+# (与 builtin_palettes 的默认绑定一致:anchor_subject->accent1 …)
+_ROLE_DEFAULTS = {
+    "anchor_subject": "accent1",
+    "comparator": "accent2",
+    "neutral": "accent3",
+    "emphasis": "accent4",
+}
+
 class Profile:
     def __init__(self, data, path):
         self.data = data
@@ -35,8 +47,13 @@ class Profile:
         self._sem = data.get("semantic_contract", {}) or {}
     def color(self, accent_or_role):
         """按 accent 名(accent1)或语义角色(anchor_subject)取色,返回 RGBColor。
-        先查语义契约,再查 accent 本名。"""
-        key = self._sem.get(accent_or_role, accent_or_role)
+        解析顺序:semantic_contract 显式绑定 -> 角色->accent 默认兜底 -> accent 本名。
+        空 semantic_contract 时角色(anchor_subject 等)回退到默认 accent1..4,不 KeyError。"""
+        key = self._sem.get(accent_or_role)            # 1) 显式契约
+        if not key:
+            key = _ROLE_DEFAULTS.get(accent_or_role)   # 2) 角色->accent 默认兜底
+        if not key:
+            key = accent_or_role                        # 3) 当成 accent 名本身
         hexv = self._colors.get(key) or self._colors.get(accent_or_role)
         if not hexv:
             raise KeyError(f"profile 无此色: {accent_or_role} (语义契约={self._sem}, 已知 accents={list(self._colors)})")

@@ -34,7 +34,7 @@ layouts:
   content: 0           # 内容页-浅色-有底线
   dark: 2              # 内容页-深色-有底线(关键发现/强调页)
   red_conclusion: 4    # 内容页-红色-有底线(结论页)
-  chapter: 16          # 章节页(背景图,白字需衬底→deck_helpers.chap 已处理)
+  chapter: 16          # 章节页(chap() 填占位符不画衬底;白字不可读时 build 手画衬底)
   blank: 8             # 空白
 
 # 语义色契约(人工填):把 accent 绑到【本 deck】的语义角色。

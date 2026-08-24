@@ -89,8 +89,8 @@ tech-gtm-training-deck/
 - **依赖 slide-maker，不重造轮子**——PPT 段 import slide-maker 的 deckkit/anim，不 vendor 6990 行。
 - **profile 机制修漂移坑**——`inspect_and_profile.py` 探查你的模板生成结构化 `profile.yaml`，build 脚本从 yaml 读配色/字体，不再人工抄硬编码（手工抄易与模板漂移）。
 - **门禁 + 豁免**——技术培训 deck 高密度，`.deck-gates.json` 的 `density.waived`/`provenance.waived` 记录书面豁免理由放行，而非降级成空洞 deck。layout criticals（溢出/越界）永不豁免。
-- **章节页对比修复**——深暖背景图上白字对比不足时，`deck_helpers.chap` 自动加半透明深色衬底条。
-- **Stage 0 前置访谈**——调研前 3 轮问清受众/故事线/页数/动画/模板等(全项默认可跳),产物 `brief.yaml` 驱动三段;不再靠猜。
+- **章节页对比**——`deck_helpers.chap` 填模板章节页占位符但不画衬底（信任模板设计语言）；模板白字确不可读时，build 手画深色衬底条。
+- **Stage 0 前置访谈（两模式）**——交互模式按 missing 动态组轮问清受众/故事线/页数/动画/模板等（全项默认可跳）；无人值守模式 `stage0_brief(interactive=False)` 不问、全默认直入，cron/loop/SDK 不 hang。产物 `brief.yaml` 驱动三段。
 - **分层架构图 / 网络拓扑图**——`arch_layers()` 复刻政企模板分层画法;`network_topo()` 内置网络设备图标 + 边到边精准连线(deckkit `connect_boxes`),离线可用。
 - **默认模板池**——`template: auto` 时从两个内置金山云红模板取可用者,离线兜底(见 SKILL.md `## Default template pool`)。
 

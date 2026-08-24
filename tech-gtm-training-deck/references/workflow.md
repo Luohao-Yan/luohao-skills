@@ -64,8 +64,10 @@ fall back to `brief.DEFAULTS` (see `scripts/brief.py`), never error.
   footer collision — these are hard gates, never waived).
 - **Critic's mechanical checks** → text-wall word count, small-type detection,
   contrast ratio, overflow — `lint_deck.py` computes these.
-- **The chapter-page contrast fix** → `deck_helpers.chap` draws the backing strip
-  deterministically.
+- **Chapter page** → `deck_helpers.chap` fills the template's chapter-layout
+  placeholders (title + subtitle + CJK tag); it does **not** draw a backing strip.
+  If the template's chapter page has unreadable white text, add a backing strip
+  in the build script (see `deck-from-template.md` §chapter-page contrast).
 - **`viewer.html` / `num_circle` / `set_title` / `card`** calls.
 
 ### Needs human judgment — don't automate, don't rubber-stamp
