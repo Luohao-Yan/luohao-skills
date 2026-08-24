@@ -110,7 +110,9 @@ def write_yaml(pptx_path, colors, fonts, layouts, key_layouts, w_in, h_in, out_y
     for role, idx in key_layouts.items():
         lines.append(f"  {role}: {idx}   # {layouts[idx]['name']}")
     lines += ["", "# 语义色契约(人工填):把 accent 绑到本 deck 的语义角色。与内容绑定,机器无法推断。",
-              "# 例: anchor_subject -> accent1, comparator -> accent2, neutral -> accent3, emphasis -> accent4",
+              "# key 必须用 anchor_subject(不是 anchor)/ comparator / neutral / emphasis;build 用 D.anchor 取色。",
+              "# 例: anchor_subject: accent1, comparator: accent2, neutral: accent3, emphasis: accent4",
+              "# 留空也能跑(load_profile 回退 accent1..4 默认),但填了才按你的语义分配色。",
               "semantic_contract: {}"]
     open(out_yaml, "w", encoding="utf-8").write("\n".join(lines) + "\n")
     return out_yaml
@@ -141,7 +143,7 @@ def write_md(pptx_path, colors, fonts, layouts, key_layouts, w_in, h_in, out_md)
               "- 卡片 / 编号圆 / 箭头 / 底线 / 强调句 等模板自带语汇",
               "", "## 注意 / footprint",
               "- 内容页占位符仅标题;正文用 deckkit 画,避开版式自带底线(底部约 0.5in)",
-              "- 章节页若背景图深暖,白字对比不足 → 加半透明深色衬底条(deck_helpers.chap)",
+              "- 章节页:deck_helpers.chap 填占位符不画衬底;若模板背景图白字对比不足,build 时手画深色衬底条",
               "- 本机若无 SVG 光栅器 → 不用 SVG 图标,沿用模板几何语汇"]
     open(out_md, "w", encoding="utf-8").write("\n".join(lines) + "\n")
     return out_md

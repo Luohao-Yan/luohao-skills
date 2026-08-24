@@ -45,9 +45,14 @@ Record the design plan, mirroring slide-maker's design checkpoint, in a
   dark key-finding / formula+chips / slot-diagram / 3-column / table / numbered-steps
   / red-conclusion / chapter dividers). Vary the protagonist; don't let one skeleton
   dominate.
-- `semantic_contract` — bind each accent to a **semantic role** (red = the anchor
-  subject / core conclusion; orange = the comparator; navy = neutral; gold =
-  emphasis). This is the `semantic_contract` block in `profile.yaml`.
+- `semantic_contract` — bind each accent to a **semantic role** with these exact
+  keys: `anchor_subject` (the main subject / core conclusion — red), `comparator`
+  (the comparison — orange), `neutral` (headers / structure — navy), `emphasis`
+  (take-away / key line — gold). The key is `anchor_subject` (not `anchor`);
+  the build script reads it as `D.anchor`. This is the `semantic_contract` block
+  in `profile.yaml`. If left empty, `load_profile` falls back to
+  accent1..4 by role so the build still runs — but filling it is what assigns
+  colors to your semantics.
 - `type_scale` — three tiers as numbers (`{display, title, body}`), drawn from the
   template's tokens.
 - `icon_family` — if the machine has no SVG rasterizer (cairosvg/libcairo), record
@@ -153,16 +158,37 @@ three legitimate install locations and you don't know which your user used. (Thi
 matters for the **dependency-on-slide-maker** note in `SKILL.md` `## Install Source`:
 state the dependency, but don't assume where it lives.)
 
-## The chapter-page contrast fix (a real failure mode)
+## The chapter-page contrast (a real failure mode — you handle this, not chap)
 
 Many corporate templates' chapter-divider layout (a full-bleed background image:
 deep-red→orange gradient + dot-matrix) makes **white title text unreadable** in the
 bright-orange dot regions — the page looks "empty" to the audience even though the
-text is there. The fix (validated): draw a **semi-transparent dark gradient backing
-strip** behind the chapter title (number + title + optional subtitle), so white
-text sits on a controlled dark band. `deck_helpers.chap` does this; adjust the
-backing alpha/geometry per template. If a divider looks empty after build, this is
-the first thing to check — it's a contrast problem, not a missing-content problem.
+text is there.
+
+**What `deck_helpers.chap` does and does NOT do:** `chap()` fills the template's
+chapter-layout placeholders (idx0 title + idx10 subtitle) and tags CJK fonts — it
+**does not draw a backing strip**. It trusts the template's own design language
+(its placeholder is already positioned on the dark part of the background, where
+white text reads). So on a *well-designed* template, `chap()` is enough.
+
+**When the template is NOT well-designed** (white text genuinely unreadable on a
+bright background), `chap()` will ship an unreadable divider — and that is a
+**real failure mode you must handle yourself**, by drawing a semi-transparent
+dark gradient backing strip behind the title in the build script:
+
+```python
+s = chap(prs, D, "chapter", "01", "标题", sub="...")
+# 可选:模板章节页白字不可读时,手画半透明深色衬底条
+dk.box(s, 0.5, 2.4, W_IN-1.0, 1.6,
+       fill=RGBColor(0x00,0x00,0x00), round=True, r=0.08)
+# (python-pptx 无原生透明度;用接近模板暗色的实色,或 deckkit 的半透明能力若有)
+```
+
+How to know you need it: **eyeball the chapter page's render after build.** If
+white text is unreadable, it's a contrast problem, not a missing-content problem —
+add the backing strip. `chap()` deliberately doesn't guess, because a strip on an
+already-dark template would look wrong the other way. Treat it as: `chap()` lays
+the text, you verify the render, you add backing only if the template needs it.
 
 ## The bottom_callout + content overlap fix (a real failure mode)
 

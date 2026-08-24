@@ -10,7 +10,7 @@ build 脚本:
     from deck_helpers import Deck, set_title, num_circle, chap, card, para, notes
 
 这些 helper 把"在用户模板上画一页"的重复动作封装好:填标题占位符并打 CJK 字体
-tag、画模板语汇的渐变编号圆、画带半透明衬底的章节页(修深暖背景白字对比坑)、
+tag、画模板语汇的渐变编号圆、填章节页占位符(chap 信任模板设计,不画衬底)、
 画卡片、写讲者备注。颜色都从传入的 Profile 来,不硬编 hex。
 """
 import os, sys
