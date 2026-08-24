@@ -100,6 +100,21 @@ The one thing you may draft without source is **forward-looking recommendations*
 (what *we* should do) — and only as a flagged extrapolation grounded in verified
 facts, never as if the source said it.
 
+## Unattended mode — when there's no human to confirm a name
+
+The attribution-correction pattern above leans on a user-confirm ("is the user's
+'X' the same as product Y?"). In unattended mode (Stage 0 ran `interactive=False`),
+no human is coming back — a blocking confirm is a hang. Instead:
+
+- **Take the most conservative reading and label it**, don't guess. Write the
+  claim with "此项存疑，未与用户确认" and the evidence you do have, and proceed —
+  a labeled gap survives scrutiny, a silent guess or a hung question doesn't.
+- The `file_path:line` trace and the ownership table still apply; you just don't
+  *lock* a contested name as if a human had confirmed it. The labels you leave are
+  exactly the spots a human should confirm on return.
+- This is the same honesty the "No fabrication" floor demands — "not verified"
+  is a valid state; "verified by a human who isn't there" is not.
+
 ## Output of stage 1
 
 A comprehension in your head + the **ownership table** + a per-source evidence list

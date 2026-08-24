@@ -32,14 +32,62 @@ and the critic loop as non-negotiable.
 
 ## Stage 0 — Brief (interview before investigating)
 
-Before touching the source, **interview the user** so the deck's audience, depth,
-page count, and presentation choices are decided up-front, not guessed. This is
-the part the old version skipped — and it is what makes a deck land for *this*
-audience vs. a generic one.
+Before touching the source, **lock the deck's audience, depth, page count, and
+presentation choices up-front, not by guessing**. Stage 0 produces `brief.yaml`,
+the contract every later stage reads. Two modes — pick by whether a human is in
+the loop:
 
-Run **3 rounds** of `AskUserQuestion` (the tool caps at 4 questions/round, 2-4
-options each). **Every item has a default** — the user can skip any round and the
-pipeline still runs. The interview is a chance to lock direction, not a gate.
+- **Interactive mode (a human is in the loop)** — run the `AskUserQuestion`
+  interview below. Ask **only the fields the user hasn't already supplied**
+  (a pre-filled `brief.yaml` or prior answers count as supplied). Every item has
+  a default, so the user can skip any round and the pipeline still runs. The
+  interview is a chance to lock direction, not a gate.
+- **Unattended mode (no human: cron / loop / SDK / "don't ask me")** — **do not
+  call `AskUserQuestion` at all**; `AskUserQuestion` blocks forever with no one
+  to answer. Instead build the brief from existing answers + defaults only.
+  When to use unattended is decided by an **explicit signal**, never inferred:
+  the user says "无人值守 / 后台跑 / 不要问我", or `brief.yaml` already exists
+  (= "answers already given"), or the run is from `/loop`/cron/SDK. Never silently
+  downgrade a deck the user thinks is being tailored.
+
+Both modes go through the same pure function so the "ask / don't ask" decision
+is code, not agent improvisation:
+
+```python
+import os, sys
+HERE = os.path.dirname(os.path.abspath(__file__))          # 这段脚本所在目录
+# tech-gtm-training-deck/scripts(本 skill 的 scripts):
+SKILL_SCRIPTS = os.path.join(HERE, "..", "scripts") if os.path.isdir(
+    os.path.join(HERE, "..", "scripts")) else os.path.join(os.path.expanduser("~"),
+    ".claude", "skills", "tech-gtm-training-deck", "scripts")
+sys.path.insert(0, SKILL_SCRIPTS)
+import brief
+
+# 交互:有人在 → interactive=True,传一个调 AskUserQuestion 的 asker(见下「轮次编排」)
+# 无人:interactive=False,asker 不传 → 全默认 + existing 直入,绝不 hang
+data = brief.stage0_brief(subject, existing=prior_answers,
+                          interactive=not UNATTENDED, asker=asker)
+brief.write_brief(data, os.path.join(data["outdir"], "brief.yaml"))
+```
+
+`stage0_brief(subject, existing, interactive, asker)` is the single entry point:
+- `interactive=False` → never calls `asker` (unattended).
+- `asker=None` (caller forgot / can't ask) → never calls `asker`, falls back to
+  defaults (safety net — no hang, no crash).
+- `interactive=True` with an `asker` → calls `asker(missing_fields)` **once**, only
+  for fields `existing` didn't supply; nothing missing → doesn't call.
+Every path finally passes `merge_with_defaults`, so `need_arch_diagram` derives
+from `tilt`, `purpose`/`outdir` derive from `subject`, explicit values win, and
+missing fields fall back — never error. See `scripts/brief.py`.
+
+### The interview (interactive mode — ask only what isn't already filled)
+
+Run `AskUserQuestion` in rounds (the tool caps at 4 questions/round, 2-4 options
+each). The 4 default-skippable rounds below are the **full question set**; in
+unattended mode none of these run, and in interactive mode you **skip any
+question whose answer `existing` already supplies**. Group the still-missing
+fields into rounds of ≤4 and ask; if everything's already filled, skip the
+interview entirely.
 
 **Round 1 — direction** (4 questions)
 - *主题偏向 (tilt)*: 技术深度 / 高层愿景 / 平衡 — default 平衡(balanced)
@@ -59,15 +107,23 @@ pipeline still runs. The interview is a chance to lock direction, not a gate.
 
 > `need_arch_diagram` 不单列成题——由 `tilt` 推导(tilt=tech→true,否则 false),在轮 3 确认题里展示给用户,可改。`need_network_topo` 默认 false,若用户在轮 2 提到网络拓扑或调研内容含网络/部署拓扑,由 Stage 1/2 置 true。
 
-**Product**: write `brief.yaml` to `<outdir>/brief.yaml` (13 fields). Use
-`scripts/brief.py`:
-```python
-import sys, os
-sys.path.insert(0, os.path.join("<tech-gtm-training-deck>", "scripts"))
-import brief
-data = brief.merge_with_defaults(answers_from_3_rounds)  # 缺失字段兜底
-brief.write_brief(data, os.path.join(data["outdir"], "brief.yaml"))
-```
+### Unattended mode — what changes downstream (the implicit-confirm rule)
+
+When you ran Stage 0 unattended, **no human is coming back to confirm**. Two
+later stages have implicit "ask the user" steps that would hang — both must
+degrade, not block:
+
+- **Stage 1 attribution ambiguity** (e.g. "is the user's 'X' the same as product
+  Y?"): in interactive mode this is a user-confirm; in unattended mode **take the
+  most conservative reading and mark it** — write "此项存疑，未与用户确认" in the
+  doc rather than stopping to ask. A labeled gap is honest; a blocking question
+  with no answer is a hang. See `references/investigate.md`.
+- **Stage 3 critic verdict + waiver**: the "you judge consent" step is a human
+  call; in unattended mode **default to the `density.waived` path** (record the
+  waiver reason, never block) and at deliver **flag prominently that the deck is
+  machine-produced, unrevised by a human critic** so the receiver knows to spot-check.
+  Never ship a machine-only deck silently. See `references/workflow.md`.
+
 brief.yaml fields: `subject / tilt / audience / purpose / pages / animation / template / language / emphasis / fidelity / need_arch_diagram / need_network_topo / outdir`. See `scripts/brief.py` `DEFAULTS` for exact values.
 
 **Downstream stages read brief.yaml** — Stage 1 reads `tilt/audience/purpose/emphasis`
@@ -81,7 +137,7 @@ to draw. If a field is missing, `brief.load_brief` falls back to defaults
 
 | Stage | What it does | Where the method lives |
 |---|---|---|
-| **0. Brief** | Interview the user (3 rounds, all defaults skippable) → write `brief.yaml` (audience/tilt/pages/animation/template/language/emphasis/fidelity + need_arch_diagram/need_network_topo). Drives every later stage. | this file §Stage 0; `scripts/brief.py` |
+| **0. Brief** | Lock audience/tilt/pages/animation/template/language/emphasis/fidelity + need_arch_diagram/need_network_topo into `brief.yaml` (13 fields). **Interactive**: AskUserQuestion interview, ask only unfilled fields, all defaults skippable. **Unattended**: no interview — `stage0_brief(interactive=False)` builds from existing + defaults, never hangs. Drives every later stage. | this file §Stage 0; `scripts/brief.py` `stage0_brief` |
 | **1. Investigate** | Read the source to line-level (local code, installed apps, public info); never fabricate; attach `file_path:line` to every claim. | `references/investigate.md` |
 | **2. Training doc** | Turn the investigation into a structured training `.md` (TL;DR → what is it → how it works → object inventory → why it matters → comparison → recommendations → evidence appendix). | `references/training-doc.md` |
 | **3. Deck from template** | Turn the doc + the user's `.pptx` template into a brand-consistent deck, via the **slide-maker** skill: inspect → profile → design gate → build → render → critic (2 rounds) → fix → gate(waived) → deliver. | `references/deck-from-template.md` |

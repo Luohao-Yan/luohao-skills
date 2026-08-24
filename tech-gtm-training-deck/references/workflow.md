@@ -12,11 +12,13 @@ concern, or when you're deciding whether to automate a step.
 user need
    │
    ├─ Stage 0 BRIEF ──────────────────────────────────────────────┐
-   │   3 rounds AskUserQuestion (all defaults skippable)          │
+   │   interactive: AskUserQuestion, ask only unfilled fields      │
+   │   unattended:  stage0_brief(interactive=False), no questions   │
    │   → brief.yaml (13 fields: audience/tilt/pages/animation/      │
    │     template/language/emphasis/fidelity/need_arch_diagram/    │
    │     need_network_topo/outdir/subject/purpose)                 │
    │   drives every later stage; missing fields fall back to defs  │
+   │   (unattended = no human back; Stage 1/3 degrade, see below)   │
    │                                                               ▼
    ├─ Stage 1 INVESTIGATE ────────────────────────────────────────┐
    │   fan out Explore agents across independent source lines      │
@@ -89,6 +91,31 @@ fall back to `brief.DEFAULTS` (see `scripts/brief.py`), never error.
 - **Stage 6 recommendations** — stance-dependent ("don't ship to prod yet",
   "unify the messaging") cannot be auto-generated; they need your read of the
   situation.
+
+### Unattended mode — the two human-judgment steps must degrade, not block
+
+The "needs human judgment" items above assume a human is reachable. In unattended
+mode (Stage 0 ran `interactive=False`; no human is coming back), two of them have
+an implicit "ask the user" that would **hang** with no answer. Both degrade:
+
+- **Stage 1 attribution clarification** — instead of the "WPS Connect = Comate"
+  user-confirm, **take the most conservative reading and label it**: write
+  "此项存疑，未与用户确认" in the doc at the claim. A labeled gap is honest and
+  survives scrutiny; a blocking question with no answer is a hang. The
+  `file_path:line` trace still applies — you just don't lock the name without a
+  human. When the human returns, the labels are exactly the spots to confirm.
+- **Stage 3 critic verdict & waiver** — the "you judge consent" step has no
+  human; **default to the `density.waived` path** (record the waiver reason,
+  never block on the lint's `revise`) and **flag the deliverable prominently** as
+  machine-produced / unrevised-by-a-human-critic, so the receiver knows to
+  spot-check before relying on it. Never ship a machine-only deck silently.
+  The `lint_layout(strict=True)` criticals (overflow, off-canvas) stay
+  non-negotiable — waive density, never a layout fault, attended or not.
+
+The other human-judgment items (outline, signature_move, semantic_contract,
+recommendations) don't block on a human — you make the call from the brief and
+the doc, and proceed. They're lower quality without a human's steer, but they
+don't hang.
 
 ## The two most common handoff failures (avoid these)
 
