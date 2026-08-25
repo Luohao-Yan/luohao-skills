@@ -93,15 +93,38 @@ def chap(prs, deck, layout_role, num, title, sub="", accent=None):
         for r in p.runs:
             r.font.bold = True; r.font.name = dk.FONT
             dk._apply_ea(r, dk.EAFONT)
-    # idx10 副标题占位符(模板自带 24 号样式)
-    if sub:
-        try:
-            ph2 = s.placeholders[10]; ph2.text = sub
+    # idx10 副标题占位符:传 sub 则填(打 CJK ea tag),不传则删(避免空占位符渲染版式提示)
+    try:
+        ph2 = s.placeholders[10]
+        if sub:
+            ph2.text = sub
             for p in ph2.text_frame.paragraphs:
                 for r in p.runs:
                     r.font.name = dk.EAFONT; dk._apply_ea(r, dk.EAFONT)
-        except (KeyError, IndexError):
-            pass
+        else:
+            ph2._element.getparent().remove(ph2._element)
+    except (KeyError, IndexError):
+        pass
+    return s
+
+def cover_from_template(prs, deck, layout_role, *, drop_title=True, drop_all=False):
+    """用模板的封面版式加页(保留版式自带背景装饰),然后剥离继承的占位符,
+    避免空占位符渲染版式提示语。返回干净画布供自绘标题。
+
+    与 cover() 的分工:cover() 用 blank 版式纯自绘(默认推荐);
+    本函数用于"要保留模板封面版式装饰、只替换标题"的场景。
+    用删除占位符元素(非 .text='')从源头消除残留。
+
+    drop_title: 删 idx0 标题占位符(自绘标题时用,默认 True)
+    drop_all  : 删该版式所有占位符(完全自绘时用)
+    """
+    s = prs.slides.add_slide(prs.slide_layouts[deck.P.layout(layout_role)])
+    if drop_all:
+        dk.drop_placeholders(s, keep_idx=set())
+    elif drop_title:
+        for ph in list(s.placeholders):
+            if ph.placeholder_format.idx == 0:
+                ph._element.getparent().remove(ph._element)
     return s
 
 def card(slide, x, y, w, h, fill=None, line=None, line_w=1.5, r=0.12, corners='all'):
