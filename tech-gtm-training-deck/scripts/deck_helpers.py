@@ -439,3 +439,51 @@ def text_right_card(slide, deck, left_title, left_body, right_title, right_body,
     dk.box(slide, rx+0.3, y+0.6, right_w-0.6, 0.02, fill=anchor)
     dk.text(slide, rx+0.3, y+0.75, right_w-0.6, h-0.95,
             [[(right_body, 13, ink, False, False, ea)]], line_spacing=1.35, wrap=True)
+
+
+# ---- 模板占位符残留闸门 (check_template_placeholders) ----
+# 根因:build 脚本用 placeholder.text='' 清空占位符(不删元素),空占位符仍渲染版式/母版的
+# 提示语(如"点击添加页面大标题")。纯文本 lint 读 slide 层(空)抓不到——提示语在版式层,
+# 必须按 idx 反查版式占位符。措辞无关、模板无关、确定性。
+#
+# 无需排除 chrome 占位符(DATE/FOOTER/SLIDE_NUMBER):add_slide 只把内容占位符
+# (TITLE/BODY/OBJECT)克隆到 slide,chrome 占位符留在版式层、不在 slide.placeholders 里,
+# 闸门遍历 slide.placeholders 永远遇不到它们。实测默认模板与真实金山云模板均如此。
+
+
+def check_template_placeholders(prs, *, fail_on_prompt=True):
+    """构建期闸门:遍历每页占位符,若 slide 占位符文本空,按 idx 反查版式同 idx 占位符;
+    若版式占位符带非空提示语 → 该空占位符会渲染版式提示 → 报告。
+
+    机制:slide 占位符清空(.text='')后文本为空,但版式层提示语仍在,渲染时显示。
+    chrome 占位符(DATE/FOOTER/SLIDE_NUMBER)不会出现在 slide.placeholders(add_slide
+    不克隆 chrome),故无需类型排除。
+
+    返回 findings 列表 [{slide, idx, type, layout_prompt}]。
+    fail_on_prompt=True 时,有 finding 则 raise RuntimeError(构建期硬失败)。
+    """
+    findings = []
+    for i, slide in enumerate(prs.slides, 1):
+        lay = slide.slide_layout
+        lay_ph_by_idx = {ph.placeholder_format.idx: ph for ph in lay.placeholders}
+        for ph in list(slide.placeholders):
+            try:
+                if (ph.text_frame.text or "").strip():
+                    continue                       # 已填充,无残留
+            except Exception:
+                continue
+            pfmt = ph.placeholder_format
+            idx = pfmt.idx
+            lph = lay_ph_by_idx.get(idx)
+            if lph and (lph.text_frame.text or "").strip():
+                findings.append({
+                    "slide": i, "idx": idx,
+                    "type": str(pfmt.type),
+                    "layout_prompt": lph.text_frame.text.strip(),
+                })
+    if fail_on_prompt and findings:
+        msg = "模板占位符残留:以下页有空占位符会渲染版式提示语(需填充或删除元素,勿用 .text=''):\n" + \
+              "\n".join(f"  slide {f['slide']} idx={f['idx']} ({f['type']}) 提示={f['layout_prompt']!r}"
+                        for f in findings)
+        raise RuntimeError(msg)
+    return findings
