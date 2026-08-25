@@ -33,7 +33,7 @@ from pptx.util import Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from load_profile import load
-from deck_helpers import Deck, set_title, num_circle, chap, card, para, notes, arch_layers, network_topo
+from deck_helpers import Deck, set_title, num_circle, chap, card, para, notes, arch_layers, network_topo, check_template_placeholders
 
 # --- 路径:你的模板与输出 ---
 TPL = r"<改为你自己的.pptx模板路径>"
@@ -53,6 +53,7 @@ def build():
     # 详见 examples/deepseek-harness/build.py 的完整范例。
 {PAGE_STUBS}
     dk.lint_layout(prs, strict=True)
+    check_template_placeholders(prs)   # 闸门:空占位符渲染版式提示语→硬失败(勿用 .text='' 清占位符)
     prs.save(OUT)
     print("saved:", OUT, "slides:", len(prs.slides._sldIdLst))
 

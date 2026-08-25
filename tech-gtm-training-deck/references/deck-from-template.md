@@ -317,6 +317,31 @@ Pair them: `prs = dk.open_template(TPL)` → `strip_branding(prs)` → `cover(pr
 Eyeball the first slide's render after build — if a logo is still there, `strip_branding`
 missed it (different canvas size / logo position) and you extend its detection thresholds.
 
+## The cleared-placeholder prompt leak (a real failure mode)
+
+A subtler inherited-branding bug: a build script clears a layout placeholder with
+`placeholder.text = ""` (instead of filling or **deleting** it) and then draws its own
+title text box beside it. The placeholder's *text* is empty, so a text-scanning lint sees
+nothing — but an empty placeholder still **renders the layout/master's prompt text**
+("点击添加页面大标题 30号", "Click to edit Master title style") as a grey dashed hint box.
+The result: a hand-drawn title *and* the master's prompt on the same cover — exactly the
+"完成度不足" defect.
+
+🔴 **MUST — never clear a placeholder with `.text = ""`.** An empty placeholder renders the
+layout's prompt. To hand-draw over a template layout, **delete the placeholder element**:
+- `cover(prs, D, ...)` — draws on the blank layout (preferred; no inherited placeholders at all).
+- `cover_from_template(prs, D, layout_role, drop_title=True)` — keeps the layout's background
+  decoration, deletes the title placeholder element.
+- `dk.drop_placeholders(slide, keep_idx=set())` — delete all inherited placeholders.
+Or **fill** the placeholder (`set_title` / `chap` with `sub`). Never `.text = ""`.
+
+The deterministic gate: **`check_template_placeholders(prs)`** before `save()` — it walks every
+slide's placeholders, and for each *empty* one looks up the **same-idx placeholder on its layout**;
+if that layout placeholder carries a non-empty user-visible prompt, it raises (covers, content
+title, chapter subtitle — DATE/FOOTER/SLIDE_NUMBER chrome are excluded). Wording-agnostic and
+template-agnostic, so it catches `点击添加…` / `Click to edit…` / any future prompt phrasing.
+The `new_deck.py` scaffold already calls it; add it to hand-written build scripts too.
+
 ## What Stage 3 does NOT do
 - Re-investigate (Stage 1) or re-structure the argument (Stage 2) — it projects the
   already-verified doc onto slides.
