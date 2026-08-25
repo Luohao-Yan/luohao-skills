@@ -37,7 +37,7 @@
 - Test: `tech-gtm-training-deck/tests/test_template_placeholders.py`（新建）
 
 **Interfaces:**
-- Consumes: `prs.slides` 的 `slide.placeholders`、`slide.slide_layout.placeholders`、`ph.placeholder_format.idx`、`ph.placeholder_format.type`（python-pptx）；`PP_PLACEHOLDER` 枚举（type 比较）。
+- Consumes: `prs.slides` 的 `slide.placeholders`、`slide.slide_layout.placeholders`、`ph.placeholder_format.idx`、`ph.placeholder_format.type`（python-pptx）。
 - Produces: `check_template_placeholders(prs, *, fail_on_prompt=True) -> list[dict]`，finding 形如 `{"slide": int, "idx": int, "type": str, "layout_prompt": str}`。
 
 - [ ] **Step 1: 写失败测试 — 清空占位符被标记**
@@ -200,9 +200,8 @@ def test_cover_from_template_strips_title():
             import builtin_palettes as bp
             self.P = Profile(bp.get("slate-business"), None)
             self.W, self.H = self.P.canvas()
-        def layout(self, role):
-            # 测试用默认模板 layout 5(Title Only)顶替封面版式;只要它带 idx0 标题占位符即可
-            return 5
+            # chap/cover_from_template 调 deck.P.layout(role)(Profile 方法),故覆盖 Profile 实例方法
+            self.P.layout = lambda role: 5   # 默认模板 layout 5(Title Only),带 idx0 标题占位符
     prs = make_test_prs()
     s = cover_from_template(prs, FakeDeck(), "cover", drop_title=True)
     # idx0 占位符应已被删
@@ -221,7 +220,7 @@ def test_cover_from_template_drop_all():
             import builtin_palettes as bp
             self.P = Profile(bp.get("slate-business"), None)
             self.W, self.H = self.P.canvas()
-        def layout(self, role): return 1   # Title and Content,多占位符
+            self.P.layout = lambda role: 1   # Title and Content,多占位符
     prs = make_test_prs()
     s = cover_from_template(prs, FakeDeck(), "cover", drop_all=True)
     assert len(list(s.placeholders)) == 0
@@ -267,9 +266,9 @@ def test_chap_no_sub_drops_idx10():
             import builtin_palettes as bp
             self.P = Profile(bp.get("slate-business"), None)
             self.W, self.H = self.P.canvas()
+            self.P.layout = lambda role: 5   # make_section_prs 改造过的 layout 5
         @property
         def anchor(self): return self.P.color("anchor_subject")
-        def layout(self, role): return 5   # make_section_prs 改造过的 layout 5
 
     prs = make_section_prs()
     s = chap(prs, FakeDeck(), "section", num="01", title="章节标题")  # 不传 sub
@@ -289,9 +288,9 @@ def test_chap_with_sub_fills_idx10():
             import builtin_palettes as bp
             self.P = Profile(bp.get("slate-business"), None)
             self.W, self.H = self.P.canvas()
+            self.P.layout = lambda role: 5
         @property
         def anchor(self): return self.P.color("anchor_subject")
-        def layout(self, role): return 5
 
     prs = make_section_prs()
     s = chap(prs, FakeDeck(), "section", num="02", title="章节", sub="副标题")
