@@ -12,7 +12,7 @@
 
 - 落点：`D:/develop/luohao-skills/tech-gtm-training-deck/`（仓库源），不动 `~/.agents/skills/slide-maker`（npm 包，升级覆盖）。
 - 不重新生成 LoopEngineering-deck（用户要求仅 skill 层持久化）。
-- 语义：占位符残留 = slide 占位符文本空 **且** 版式同 idx 占位符带非空用户可见提示语。排除 chrome 占位符（DATE type=16 / FOOTER type=15 / SLIDE_NUMBER type=13），它们的"提示"是自动值（`1/27/13`/`‹#›`）或空，非用户可见"点击添加"提示。
+- 语义：占位符残留 = slide 占位符文本空 **且** 版式同 idx 占位符带非空提示语。chrome 占位符（DATE/FOOTER/SLIDE_NUMBER）add_slide 后**不克隆到 slide**（实测默认+真实金山云模板均如此），不在 `slide.placeholders` 里，闸门遇不到，无需类型排除。
 - 测试 fixture 用 conftest `make_test_prs()`（python-pptx 默认模板），layout 5 (Title Only) 含 `idx=0 TITLE prompt='Click to edit Master title style'`。
 - 颜色/字体从 profile 来，不硬编 hex（沿用 deck_helpers 既有约定）。
 - TDD：每任务先写失败测试，再实现。
@@ -50,7 +50,7 @@ import os, sys
 import pytest
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "scripts"))
-from deck_helpers import check_template_placeholders, cover_from_template, chap, Deck
+from deck_helpers import check_template_placeholders
 from conftest import make_test_prs, blank_slide
 
 
@@ -91,16 +91,6 @@ def test_dropped_placeholder_passes():
     ph = s.placeholders[0]
     ph._element.getparent().remove(ph._element)
     assert check_template_placeholders(prs) == []
-
-
-def test_chrome_placeholders_not_flagged():
-    """DATE/FOOTER/SLIDE_NUMBER chrome 占位符空 → 不报(它们本就常空,非用户可见提示)。"""
-    prs = make_test_prs()
-    # layout 1 (Title and Content) 含 DATE/FOOTER/SLIDE_NUMBER,填了标题,其余空
-    s = prs.slides.add_slide(prs.slide_layouts[1])
-    s.placeholders[0].text = "标题"
-    # 不动 DATE(idx10)/FOOTER(idx11)/SLIDE_NUMBER(idx12) —— 它们空
-    assert check_template_placeholders(prs) == []
 ```
 
 - [ ] **Step 2: 跑测试确认失败**
@@ -118,20 +108,19 @@ Expected: FAIL — `ImportError: cannot import name 'check_template_placeholders
 # 根因:build 脚本用 placeholder.text='' 清空占位符(不删元素),空占位符仍渲染版式/母版的
 # 提示语(如"点击添加页面大标题")。纯文本 lint 读 slide 层(空)抓不到——提示语在版式层,
 # 必须按 idx 反查版式占位符。措辞无关、模板无关、确定性。
-from pptx.enum.placeholders import PP_PLACEHOLDER
-
-# chrome 占位符:本就常空,"提示"是自动值(1/27/13 / ‹#›)或空,非用户可见"点击添加"提示 → 不报
-_CHROME_PH_TYPES = {
-    PP_PLACEHOLDER.DATE, PP_PLACEHOLDER.FOOTER, PP_PLACEHOLDER.SLIDE_NUMBER,
-}
+#
+# 无需排除 chrome 占位符(DATE/FOOTER/SLIDE_NUMBER):add_slide 只把内容占位符
+# (TITLE/BODY/OBJECT)克隆到 slide,chrome 占位符留在版式层、不在 slide.placeholders 里,
+# 闸门遍历 slide.placeholders 永远遇不到它们。实测默认模板与真实金山云模板均如此。
 
 
 def check_template_placeholders(prs, *, fail_on_prompt=True):
     """构建期闸门:遍历每页占位符,若 slide 占位符文本空,按 idx 反查版式同 idx 占位符;
-    若版式占位符带非空用户可见提示语 → 该空占位符会渲染版式提示 → 报告。
+    若版式占位符带非空提示语 → 该空占位符会渲染版式提示 → 报告。
 
-    机制:slide 占位符清空后文本为空,但版式层提示语仍在,渲染时显示。
-    排除 chrome 占位符(DATE/FOOTER/SLIDE_NUMBER)——它们常空且无用户可见提示。
+    机制:slide 占位符清空(.text='')后文本为空,但版式层提示语仍在,渲染时显示。
+    chrome 占位符(DATE/FOOTER/SLIDE_NUMBER)不会出现在 slide.placeholders(add_slide
+    不克隆 chrome),故无需类型排除。
 
     返回 findings 列表 [{slide, idx, type, layout_prompt}]。
     fail_on_prompt=True 时,有 finding 则 raise RuntimeError(构建期硬失败)。
@@ -148,8 +137,6 @@ def check_template_placeholders(prs, *, fail_on_prompt=True):
                 continue
             pfmt = ph.placeholder_format
             idx = pfmt.idx
-            if pfmt.type in _CHROME_PH_TYPES:
-                continue                           # chrome 占位符,常空,不报
             lph = lay_ph_by_idx.get(idx)
             if lph and (lph.text_frame.text or "").strip():
                 findings.append({
@@ -168,7 +155,7 @@ def check_template_placeholders(prs, *, fail_on_prompt=True):
 - [ ] **Step 4: 跑测试确认通过**
 
 Run: `cd tech-gtm-training-deck && python -m pytest tests/test_template_placeholders.py -v`
-Expected: PASS（5 个用例）。
+Expected: PASS（4 个用例）。
 
 - [ ] **Step 5: 跑全量回归确认无破坏**
 
@@ -183,7 +170,7 @@ git commit -m "feat(tech-gtm): 加 check_template_placeholders 占位符残留�
 
 按 idx 反查版式占位符提示语,空占位符+版式带提示→报告/raise。
 根因:build 脚本用 .text='' 清空占位符不删元素,空占位符渲染版式提示语。
-措辞无关、模板无关、确定性;排除 DATE/FOOTER/SLIDE_NUMBER chrome 占位符。"
+措辞无关、模板无关、确定性。"
 ```
 
 ---
@@ -192,11 +179,12 @@ git commit -m "feat(tech-gtm): 加 check_template_placeholders 占位符残留�
 
 **Files:**
 - Modify: `tech-gtm-training-deck/scripts/deck_helpers.py`（`chap()` L83-105；新增 `cover_from_template()`）
+- Modify: `tech-gtm-training-deck/tests/conftest.py`（末尾新增 `make_section_prs` fixture）
 - Test: `tech-gtm-training-deck/tests/test_template_placeholders.py`（追加用例）
 
 **Interfaces:**
-- Consumes: `dk.drop_placeholders(slide, keep_idx)`（deckkit，已存在）、`deck.P.layout(role)`。
-- Produces: `cover_from_template(prs, deck, layout_role, *, drop_title=True, drop_all=False) -> slide`；`chap()` 修后不传 `sub` 时删 idx10。
+- Consumes: `dk.drop_placeholders(slide, keep_idx)`（deckkit，已存在）、`deck.P.layout(role)`；conftest 的 `make_section_prs`。
+- Produces: `cover_from_template(prs, deck, layout_role, *, drop_title=True, drop_all=False) -> slide`；`chap()` 修后不传 `sub` 时删 idx10；`make_section_prs() -> prs`。
 
 - [ ] **Step 1: 写失败测试 — `cover_from_template` 删标题占位符**
 
@@ -239,12 +227,40 @@ def test_cover_from_template_drop_all():
     assert len(list(s.placeholders)) == 0
 ```
 
-- [ ] **Step 2: 写失败测试 — `chap` 不传 sub 删 idx10**
+- [ ] **Step 2: 加 `make_section_prs` fixture 到 conftest.py**
+
+chap 的 idx10 副标题占位符是 BODY 类型。默认模板 idx10 是 DATE（chrome，add_slide 不克隆到 slide），chap 测不到 idx10。fixture 把默认模板 layout 5 的 idx10 类型从 `dt`(DATE) 改成 `body`(BODY)，add_slide 就会克隆它到 slide，使 chap 能找到并删除/填充 idx10。已实测可行。
+
+在 `tech-gtm-training-deck/tests/conftest.py` 末尾追加：
+```python
+def make_section_prs():
+    """带章节版式(idx0 TITLE + idx10 BODY)的 prs,测 chap 的 idx10 副标题占位符。
+
+    默认模板 idx10 是 DATE(chrome,add_slide 不克隆到 slide);改成 BODY 后 add_slide
+    会克隆 idx10 到 slide,使 chap 能 s.placeholders[10] 找到并删/填它。
+    已实测:type dt→body 后 add_slide(layout5) slide 含 [0, 10]。
+    """
+    from pptx.oxml.ns import qn
+    prs = Presentation()
+    prs.slide_width = Inches(13.333); prs.slide_height = Inches(7.5)
+    lay = prs.slide_layouts[5]   # Title Only: idx0 TITLE + idx10 DATE + chrome
+    for ph in lay.placeholders:
+        if ph.placeholder_format.idx == 10:
+            phel = ph._element.find(qn('p:nvSpPr')+'/'+qn('p:nvPr')+'/'+qn('p:ph'))
+            phel.set('type', 'body'); phel.set('idx', '10')
+            ph.text_frame.text = '可添加副标题或英文-20号'   # 版式层提示语
+    return prs
+```
+
+- [ ] **Step 3: 写失败测试 — `chap` 不传 sub 删 idx10**
 
 追加到 `tests/test_template_placeholders.py`：
 ```python
 def test_chap_no_sub_drops_idx10():
     """chap() 不传 sub → idx10 副标题占位符被删(而非留空渲染版式提示)。"""
+    from deck_helpers import chap
+    from conftest import make_section_prs
+
     class FakeDeck:
         def __init__(self):
             from load_profile import Profile
@@ -253,20 +269,20 @@ def test_chap_no_sub_drops_idx10():
             self.W, self.H = self.P.canvas()
         @property
         def anchor(self): return self.P.color("anchor_subject")
-        def layout(self, role):
-            # 用 layout 1 顶替章节版式(有 idx0 标题);chap 只用 idx0/idx10
-            # layout 1 无 idx10 → 测试改用能加 idx10 的方式:直接验证"无 sub 时 idx10 不留空"
-            return 1
-    prs = make_test_prs()
-    # layout 1 无 idx10 占位符,chap 内部 try/except 会跳过;
-    # 核心断言:不传 sub 时 chap 不留任何空占位符(闸门通过)
+        def layout(self, role): return 5   # make_section_prs 改造过的 layout 5
+
+    prs = make_section_prs()
     s = chap(prs, FakeDeck(), "section", num="01", title="章节标题")  # 不传 sub
-    # 闸门对这页不报(标题已填,无 idx10 留空)
-    check_template_placeholders(prs)  # 不 raise
+    idxs = [ph.placeholder_format.idx for ph in s.placeholders]
+    assert 10 not in idxs        # idx10 被删(而非留空)
+    check_template_placeholders(prs)   # 闸门不报(标题已填,idx10 已删)
 
 
 def test_chap_with_sub_fills_idx10():
-    """chap() 传 sub → 若版式有 idx10 则填充;无则跳过。闸门不报。"""
+    """chap() 传 sub → idx10 被填充(非删除)。闸门不报。"""
+    from deck_helpers import chap
+    from conftest import make_section_prs
+
     class FakeDeck:
         def __init__(self):
             from load_profile import Profile
@@ -275,18 +291,22 @@ def test_chap_with_sub_fills_idx10():
             self.W, self.H = self.P.canvas()
         @property
         def anchor(self): return self.P.color("anchor_subject")
-        def layout(self, role): return 1
-    prs = make_test_prs()
-    chap(prs, FakeDeck(), "section", num="02", title="章节", sub="副标题")
-    check_template_placeholders(prs)  # 不 raise
+        def layout(self, role): return 5
+
+    prs = make_section_prs()
+    s = chap(prs, FakeDeck(), "section", num="02", title="章节", sub="副标题")
+    idxs = [ph.placeholder_format.idx for ph in s.placeholders]
+    assert 10 in idxs            # idx10 仍在(被填,非删)
+    assert "副标题" in s.placeholders[10].text_frame.text
+    check_template_placeholders(prs)   # 闸门不报
 ```
 
-- [ ] **Step 3: 跑测试确认失败**
+- [ ] **Step 4: 跑测试确认失败**
 
 Run: `cd tech-gtm-training-deck && python -m pytest tests/test_template_placeholders.py -v -k "cover_from_template or chap"`
-Expected: FAIL — `cover_from_template` 未定义；`chap` 不传 sub 时若版式有 idx10 会留空（但 layout 1 无 idx10，此用例可能已过——以 `cover_from_template` FAIL 为准）。
+Expected: FAIL — `cover_from_template` 未定义（`chap` 用例因 chap 当前不删 idx10，`test_chap_no_sub_drops_idx10` 的 `assert 10 not in idxs` 失败）。
 
-- [ ] **Step 4: 实现 `cover_from_template` + 修 `chap`**
+- [ ] **Step 5: 实现 `cover_from_template` + 修 `chap`**
 
 在 `deck_helpers.py` 的 `chap()` 函数（L83-105）后、`cover()` 前，新增 `cover_from_template`：
 ```python
@@ -341,24 +361,25 @@ def cover_from_template(prs, deck, layout_role, *, drop_title=True, drop_all=Fal
     return s
 ```
 
-- [ ] **Step 5: 跑测试确认通过**
+- [ ] **Step 6: 跑测试确认通过**
 
 Run: `cd tech-gtm-training-deck && python -m pytest tests/test_template_placeholders.py -v`
-Expected: PASS（全部用例，含 Task1 的 5 个 + Task2 的 4 个）。
+Expected: PASS（全部用例，含 Task1 的 4 个 + Task2 的 4 个）。
 
-- [ ] **Step 6: 跑全量回归**
+- [ ] **Step 7: 跑全量回归**
 
 Run: `cd tech-gtm-training-deck && python -m pytest tests/ -v`
 Expected: 全绿。
 
-- [ ] **Step 7: 提交**
+- [ ] **Step 8: 提交**
 
 ```bash
-git add tech-gtm-training-deck/scripts/deck_helpers.py tech-gtm-training-deck/tests/test_template_placeholders.py
+git add tech-gtm-training-deck/scripts/deck_helpers.py tech-gtm-training-deck/tests/test_template_placeholders.py tech-gtm-training-deck/tests/conftest.py
 git commit -m "feat(tech-gtm): 加 cover_from_template 助手 + 修 chap 删空 idx10
 
 cover_from_template:用模板封面版式加页后删占位符元素(保留版式装饰,消除残留)。
-chap:不传 sub 时删 idx10 而非留空,避免章节页副标题占位符渲染版式提示。"
+chap:不传 sub 时删 idx10 而非留空,避免章节页副标题占位符渲染版式提示。
+conftest 加 make_section_prs fixture(改 idx10 为 BODY)便携测 chap idx10。"
 ```
 
 ---
@@ -519,17 +540,22 @@ Expected: `OK 修复路径通过闸门(无残留)`。
 ## Self-Review
 
 **1. Spec 覆盖：**
-- 修 `chap`（无 sub 删 idx10）→ Task2 Step4。✅
-- 新增 `cover_from_template` → Task2 Step4。✅
+- 修 `chap`（无 sub 删 idx10）→ Task2 Step5。✅
+- 新增 `cover_from_template` → Task2 Step5。✅
 - 新增 `check_template_placeholders` → Task1 Step3。✅
 - `new_deck.py` 调闸门 → Task3 Step1。✅
 - 文档 🔴 MUST 警示 → Task3 Step3。✅
-- 测试 4+ 用例 → Task1 5个 + Task2 4个 = 9个（spec 说 4 个，实际更细，覆盖更全）。✅
+- 测试 → Task1 4个 + Task2 4个 = 8个。✅
 - 端到端验证闸门抓 LoopEngineering bug → Task4。✅
 - "不做"项（不改 slide-maker、不重生成 deck）→ Global Constraints + Task4 验证 only。✅
 
 **2. Placeholder 扫描：** 无 TBD/TODO（SKELETON 里 `# TODO` 是脚手架既有的用户填充提示，非计划占位）。各步骤代码完整。
 
-**3. 类型一致性：** `check_template_placeholders(prs, *, fail_on_prompt=True)` 签名在 Task1 定义、Task3/Task4 调用一致。`cover_from_template(prs, deck, layout_role, *, drop_title=True, drop_all=False)` 在 Task2 定义、Task4 调用一致。finding dict 键 `slide/idx/type/layout_prompt` 一致。`_CHROME_PH_TYPES` 用 `PP_PLACEHOLDER.DATE/FOOTER/SLIDE_NUMBER`，与 Step1 测试注释一致。
+**3. 类型一致性：** `check_template_placeholders(prs, *, fail_on_prompt=True)` 签名在 Task1 定义、Task3/Task4 调用一致。`cover_from_template(prs, deck, layout_role, *, drop_title=True, drop_all=False)` 在 Task2 定义、Task4 调用一致。finding dict 键 `slide/idx/type/layout_prompt` 一致。`make_section_prs()` 在 Task2 Step2 定义、Task2 Step3 调用一致。
 
-**4. 测试 fixture 风险：** Task2 测试用 `FakeDeck.layout()` 返回 layout 索引（5/1），绕过 profile 的 layout role 映射——已确认默认模板 layout 5 (Title Only, idx0) / layout 1 (Title+Content) 存在。`chap` 测试因 layout 1 无 idx10，Step3 预期以 `cover_from_template` FAIL 为准，`chap_no_sub` 用例可能已过（无害）。
+**4. 测试 fixture（pre-flight 实测修正）：**
+- chrome 占位符（DATE/FOOTER/SLIDE_NUMBER）add_slide 后**不克隆到 slide**（实测默认模板+真实金山云模板均如此），故 chrome 排除是死代码 → 已删除，Task1 简化为 4 测试，无 chrome 测试。
+- chap 的 idx10(BODY) 删除测试需 idx10 在 slide 上：默认模板 idx10 是 DATE(不克隆)，故加 `make_section_prs` fixture（把 layout 5 的 idx10 类型改 body，实测后 add_slide 克隆 [0,10]）→ chap 测试便携且真正断言 `10 not in idxs`。
+- cover_from_template 测试用默认模板 layout 5(idx0)/layout 1(idx0+idx1)，便携。
+- Task1 测试文件顶层 import 只含 `check_template_placeholders`（cover_from_template/chap 是 Task2 交付物，Task2 测试用局部 import），避免 Task1 时 ImportError。
+
