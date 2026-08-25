@@ -132,3 +132,22 @@ def test_chap_with_sub_fills_idx10():
     assert 10 in idxs            # idx10 仍在(被填,非删)
     assert "副标题" in s.placeholders[10].text_frame.text
     check_template_placeholders(prs)   # 闸门不报
+
+
+def test_chrome_placeholders_not_cloned_to_slide():
+    """守护测试:锚定 check_template_placeholders 的核心假设——add_slide 只克隆
+    内容占位符(TITLE/BODY/OBJECT)到 slide,chrome 占位符(DATE/FOOTER/SLIDE_NUMBER)
+    留在版式层、不在 slide.placeholders 里,故闸门无需类型排除。
+
+    若某天 python-pptx 或某模板开始把 chrome 克隆到 slide,此测试会失败,提醒更新
+    闸门(重新引入 chrome 类型排除)。默认模板 layout 1(Title and Content)版式层含
+    idx10 DATE / idx11 FOOTER / idx12 SLIDE_NUMBER,add_slide 后 slide 不应含它们。
+    """
+    from pptx.enum.shapes import PP_PLACEHOLDER
+    prs = make_test_prs()
+    s = prs.slides.add_slide(prs.slide_layouts[1])
+    slide_ph_types = {ph.placeholder_format.type for ph in s.placeholders}
+    chrome = {PP_PLACEHOLDER.DATE, PP_PLACEHOLDER.FOOTER, PP_PLACEHOLDER.SLIDE_NUMBER}
+    assert not (slide_ph_types & chrome), \
+        "chrome 占位符被克隆到 slide 了——闸门的 chrome-非克隆假设被打破,需重新引入类型排除"
+
