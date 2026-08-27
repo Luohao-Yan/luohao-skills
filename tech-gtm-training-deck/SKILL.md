@@ -312,3 +312,36 @@ skill previously couldn't draw:
 Both reuse slide-maker's deckkit (`node`/`connect_boxes`/`box`) — colors/fonts come
 from `profile.yaml` via `deck_helpers.Deck`. See `scripts/deck_helpers.py` for
 signatures and `tests/test_arch_layers.py` / `tests/test_network_topo.py` for usage.
+
+### `arch_layers` — three optional args for branded/gov formal diagrams
+
+`arch_layers` gained three optional args (all default off → original behavior
+unchanged). Use them when a branded or government-formal architecture diagram is
+needed, not for a generic colorful stack:
+
+- **`style="ksyun"`** — 金山云品牌红配色:色带用浅红 `#FDECEE`,组件描边用主红
+  `#C8102E`,公文正式调性(不分层花色)。`accent` 不传时自动用金山云红;传别的色
+  可覆盖。源自从上海广电立项书架构图实践沉淀的品牌一致需求。
+- **`sidebar=True | list | None`** — 右侧安全合规侧栏。`True`=用内置 9 项默认
+  (`ARCH_SIDEBAR_DEFAULT`:数据不出局/信创合规/UIAP/ RBAC/国密/脱敏/敏感词/审计/全链路);
+  传 list 用自定义条目;`None`=不画。有侧栏时主图自动收窄 1.7 inch 让位。
+- **`show_arrows=True`** — 层间自下而上支撑箭头(层名左侧实心上指箭头,用
+  `deckkit.arrow(direction="up")`)。政务架构图常需表达"逐层支撑"语义。
+
+**三件套组合**(上海广电立项书场景):
+```python
+arch_layers(s, layers, x=0.4, y=1.2, w=12.5, total_h=5.6,
+            style="ksyun", sidebar=True, show_arrows=True)
+```
+
+### `arch_layers` — 画图经验沉淀(非显而易见的坑)
+
+- **deckkit `box` 不支持 `dash` 虚线**(签名无该参数)。侧栏想表"虚线区分"用
+  实线细边框 + 浅色底,别传 `dash=`,否则 `TypeError`。
+- **层间箭头别用 `connect_boxes`**——它会吸附到最近的组件块边缘,箭头会斜穿过
+  组件而不是画在空白处。用 `deckkit.arrow(direction="up")` 画实心块箭头,放在
+  层名左侧空白区(x+0.12),不与组件冲突。
+- **视觉自检不可省**:`pytest` 只验证"不抛错",**不验证视觉正确**。改 `arch_layers`
+  画法后,必须生成真实 `.pptx` → LibreOffice 转 PNG → 肉眼核对色带/箭头/侧栏/
+  中文位置正确。曾出现"测试全过但箭头穿过组件"的视觉 bug,只有渲染看图才发现。
+  见 `tests/test_arch_layers.py` 末尾 `test_arch_layers_ksyun_full_combo_renders`。

@@ -153,10 +153,27 @@ ARCH_MONO_TINT = RGBColor(0xF3, 0xF4, 0xF6)
 ARCH_COMPONENT_FILL = RGBColor(0xFF, 0xFF, 0xFF)  # 组件块白底
 ARCH_DARK_CAP = RGBColor(0x1F, 0x29, 0x37)        # 末层深色收尾(可选)
 
+# 金山云品牌红梯度(ksyun 风格):主色 #C8102E,色带用同色系浅红,组件描边用主红。
+# 源自上海广电立项书架构图实践:品牌一致 + 公文正式调性。
+ARCH_KSYUN_ACCENT = RGBColor(0xC8, 0x10, 0x2E)   # 金山云红
+ARCH_KSYUN_TINT = RGBColor(0xFD, 0xEC, 0xEE)     # 浅红色带
+ARCH_KSYUN_TINTS = [ARCH_KSYUN_TINT] * 5          # 单色系浅红循环(不分层花色,更正式)
+
+# 安全合规侧栏默认项(可被 sidebar 参数覆盖)
+ARCH_SIDEBAR_DEFAULT = [
+    "数据不出局", "信创合规", "UIAP 单点登录", "RBAC 权限",
+    "国密加密", "数据脱敏", "敏感词检测", "操作审计", "全链路可审计",
+]
+
 def arch_layers(slide, layers, x=0.4, y=1.4, w=12.5, total_h=5.2,
-                style="colored", accent=None, font=None):
+                style="colored", accent=None, font=None,
+                sidebar=None, show_arrows=False):
     """分层架构图。layers=[{name,items:[...],height,color?},...]。
-    style: colored(多彩分层)/ mono(单色分层)。
+    style: colored(多彩分层)/ mono(单色分层)/ ksyun(金山云红,公文正式)。
+    accent: 组件描边主色;None 时按 style 推导(colored/mono=藏青, ksyun=金山云红)。
+    sidebar: 右侧安全合规侧栏。True=用 ARCH_SIDEBAR_DEFAULT;list=自定义条目;None=不画。
+       侧栏占宽 1.6 inch,主图自动收窄到 w-1.7。
+    show_arrows: 画层间自下而上支撑箭头(默认 False;政务架构图常加)。
     返回各层中心点 [(cx,cy),...](供后续连线)。
     画法:每层一条全宽色带(L=x,W=w,浅色),层名左上,层内组件块横向并排(白底+accent描边)。
     超过6层:自动压缩高度并 print 提示建议拆页。"""
@@ -165,21 +182,34 @@ def arch_layers(slide, layers, x=0.4, y=1.4, w=12.5, total_h=5.2,
         return []
     if n > 6:
         print("[arch_layers] 层数较多(>6),建议拆页;已自动压缩层高")
-    sum_h = sum(L.get("height", 0.8) for L in layers)
-    if sum_h > total_h:
-        scale = total_h / sum_h
+
+    # --- sidebar 让出空间 ---
+    sidebar_items = None
+    main_w = w
+    if sidebar is not None:
+        sidebar_items = ARCH_SIDEBAR_DEFAULT if sidebar is True else sidebar
+        SIDEBAR_W = 1.6
+        main_w = w - SIDEBAR_W - 0.1  # 主图收窄,留间隙
+
+    # --- style → 配色 ---
+    if style == "ksyun":
+        accent = accent or ARCH_KSYUN_ACCENT
+        tints_cycle = ARCH_KSYUN_TINTS
     else:
-        scale = 1.0
-    accent = accent or RGBColor(0x3F, 0x54, 0x69)
+        accent = accent or RGBColor(0x3F, 0x54, 0x69)
+        tints_cycle = ARCH_TINTS if style == "colored" else [ARCH_MONO_TINT]
+
+    sum_h = sum(L.get("height", 0.8) for L in layers)
+    scale = total_h / sum_h if sum_h > total_h else 1.0
     ink = RGBColor(0x2A, 0x2A, 0x33)
     ea = font or dk.EAFONT
     cy_list = []
     cur_y = y
     for i, L in enumerate(layers):
         h = L.get("height", 0.8) * scale
-        tint = L.get("color") or (ARCH_TINTS[i % len(ARCH_TINTS)] if style == "colored" else ARCH_MONO_TINT)
+        tint = L.get("color") or tints_cycle[i % len(tints_cycle)]
         # 全宽色带
-        dk.box(slide, x, cur_y, w, h, fill=tint, round=True, r=0.06)
+        dk.box(slide, x, cur_y, main_w, h, fill=tint, round=True, r=0.06)
         # 层名(左上)
         dk.text(slide, x + 0.16, cur_y + 0.04, 2.4, 0.3,
                 [[(L.get("name", ""), 12, RGBColor(0x4B,0x55,0x63), True, False, ea)]], wrap=False)
@@ -188,7 +218,7 @@ def arch_layers(slide, layers, x=0.4, y=1.4, w=12.5, total_h=5.2,
         if items:
             pad = 0.16
             inner_x = x + 2.6
-            inner_w = w - 2.6 - pad
+            inner_w = main_w - 2.6 - pad
             gap = 0.12
             cw = (inner_w - gap * (len(items) - 1)) / len(items)
             ch = min(0.28, h - 0.16)
@@ -200,9 +230,53 @@ def arch_layers(slide, layers, x=0.4, y=1.4, w=12.5, total_h=5.2,
                 dk.text(slide, cx, comp_y, cw, ch,
                         [[(it, 10.5, ink, False, False, ea)]],
                         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, wrap=False)
-        cy_list.append((x + w / 2, cur_y + h / 2))
+        cy_list.append((x + main_w / 2, cur_y + h / 2))
         cur_y += h
+
+    # --- 层间自下而上支撑箭头 ---
+    if show_arrows and len(cy_list) >= 2:
+        _arch_support_arrows(slide, cy_list, accent, x, main_w)
+
+    # --- 安全合规侧栏 ---
+    if sidebar_items:
+        _arch_sidebar(slide, sidebar_items, x + main_w + 0.1, y,
+                     1.6, total_h, accent, ea)
+
     return cy_list
+
+
+def _arch_support_arrows(slide, centers, accent, x, w):
+    """层间自下而上支撑箭头:每相邻层之间画一个上指实心块箭头。
+    放在层名左侧空白区(x+0.12,宽0.2),垂直上指,不与组件块冲突。
+    用 deckkit.arrow(direction="up")——实心块箭头,不会像 connect_boxes 那样吸附到组件。"""
+    ax = x + 0.12
+    aw, ah = 0.2, 0.22
+    for i in range(len(centers) - 1):
+        _, y_below = centers[i + 1]      # 下层中心
+        _, y_above = centers[i]          # 上层中心
+        # 箭头居中于两色带之间:中点 y,箭头框高 ah
+        mid_y = (y_below + y_above) / 2
+        dk.arrow(slide, ax, mid_y - ah / 2, aw, ah, color=accent, direction="up")
+
+
+def _arch_sidebar(slide, items, x, y, w, h, accent, font):
+    """右侧安全合规侧栏:浅红色带 + 标题 + 条目纵向均分。
+    deckkit box 不支持虚线,用实线细边框 + 浅红底区分(不靠 dash)。"""
+    ea = font or dk.EAFONT
+    tint = ARCH_KSYUN_TINT
+    dk.box(slide, x, y, w, h, fill=tint, round=True, r=0.06,
+           line=accent, line_w=1.2)
+    dk.text(slide, x + 0.12, y + 0.06, w - 0.24, 0.3,
+            [[("安全合规", 13, RGBColor(0xA0,0x0C,0x24), True, False, ea)]],
+            align=PP_ALIGN.CENTER, wrap=False)
+    # 标题下分隔线区域:条目从 y+0.5 开始纵向均分
+    n = len(items)
+    item_h = (h - 0.55) / max(n, 1)
+    for i, it in enumerate(items):
+        iy = y + 0.5 + i * item_h
+        dk.text(slide, x + 0.1, iy, w - 0.2, item_h,
+                [[(it, 11.5, RGBColor(0x37,0x41,0x51), False, False, ea)]],
+                align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, wrap=False)
 
 
 # ---- 网络拓扑图 (network_topo) ----
