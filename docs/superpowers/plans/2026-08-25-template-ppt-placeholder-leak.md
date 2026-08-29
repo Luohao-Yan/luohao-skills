@@ -2,15 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 给 tech-gtm-training-deck skill加确定性闸门，阻止构建者用 `placeholder.text=""` 清空占位符导致母版提示语残留，并补安全助手路径。
+**Goal:** 给 autodeck skill加确定性闸门，阻止构建者用 `placeholder.text=""` 清空占位符导致母版提示语残留，并补安全助手路径。
 
 **Architecture:** 三层：修 `chap()`（删空 idx10）+ 新增 `cover_from_template()`（删占位符元素保留版式装饰）+ 新增 `check_template_placeholders()`（按 idx 反查版式占位符提示语，空占位符+版式带提示→报告/raise）。闸门调用嵌进 `new_deck.py` 生成的脚手架 SKELETON 文本。所有改动落 luohao-skills 仓库内 tech-gtm，不动 npm 安装的 slide-maker 包。
 
-**Tech Stack:** Python · python-pptx · pytest · tech-gtm-training-deck skill (deckkit via slide_maker_path)
+**Tech Stack:** Python · python-pptx · pytest · autodeck skill (deckkit via slide_maker_path)
 
 ## Global Constraints
 
-- 落点：`D:/develop/luohao-skills/tech-gtm-training-deck/`（仓库源），不动 `~/.agents/skills/slide-maker`（npm 包，升级覆盖）。
+- 落点：`D:/develop/luohao-skills/autodeck/`（仓库源），不动 `~/.agents/skills/slide-maker`（npm 包，升级覆盖）。
 - 不重新生成 LoopEngineering-deck（用户要求仅 skill 层持久化）。
 - 语义：占位符残留 = slide 占位符文本空 **且** 版式同 idx 占位符带非空提示语。chrome 占位符（DATE/FOOTER/SLIDE_NUMBER）add_slide 后**不克隆到 slide**（实测默认+真实金山云模板均如此），不在 `slide.placeholders` 里，闸门遇不到，无需类型排除。
 - 测试 fixture 用 conftest `make_test_prs()`（python-pptx 默认模板），layout 5 (Title Only) 含 `idx=0 TITLE prompt='Click to edit Master title style'`。
@@ -21,10 +21,10 @@
 
 | 文件 | 责任 | 改动 |
 |---|---|---|
-| `tech-gtm-training-deck/scripts/deck_helpers.py` | 模板构建积木 | 修 `chap()`；新增 `cover_from_template()`；新增 `check_template_placeholders()` |
-| `tech-gtm-training-deck/tests/test_template_placeholders.py` | 新闸门/助手测试 | 新建 |
-| `tech-gtm-training-deck/scripts/new_deck.py` | 生成 build 脚手架 | SKELETON 文本里 save 前加 `check_template_placeholders` 调用 + import |
-| `tech-gtm-training-deck/references/deck-from-template.md` | 构建指引文档 | 加 🔴 MUST 警示段 |
+| `autodeck/scripts/deck_helpers.py` | 模板构建积木 | 修 `chap()`；新增 `cover_from_template()`；新增 `check_template_placeholders()` |
+| `autodeck/tests/test_template_placeholders.py` | 新闸门/助手测试 | 新建 |
+| `autodeck/scripts/new_deck.py` | 生成 build 脚手架 | SKELETON 文本里 save 前加 `check_template_placeholders` 调用 + import |
+| `autodeck/references/deck-from-template.md` | 构建指引文档 | 加 🔴 MUST 警示段 |
 
 单元边界：`check_template_placeholders` 是纯检测函数（输入 prs，输出 findings/raise），无副作用，可独立测；`cover_from_template`/`chap` 是构建助手，测其占位符删留副作用。三者解耦，各一个测试文件内的独立用例。
 
@@ -33,8 +33,8 @@
 ### Task 1: `check_template_placeholders` 检测函数（核心闸门）
 
 **Files:**
-- Modify: `tech-gtm-training-deck/scripts/deck_helpers.py`（末尾新增函数）
-- Test: `tech-gtm-training-deck/tests/test_template_placeholders.py`（新建）
+- Modify: `autodeck/scripts/deck_helpers.py`（末尾新增函数）
+- Test: `autodeck/tests/test_template_placeholders.py`（新建）
 
 **Interfaces:**
 - Consumes: `prs.slides` 的 `slide.placeholders`、`slide.slide_layout.placeholders`、`ph.placeholder_format.idx`、`ph.placeholder_format.type`（python-pptx）。
@@ -42,7 +42,7 @@
 
 - [ ] **Step 1: 写失败测试 — 清空占位符被标记**
 
-`tech-gtm-training-deck/tests/test_template_placeholders.py`：
+`autodeck/tests/test_template_placeholders.py`：
 ```python
 # -*- coding: utf-8 -*-
 """check_template_placeholders / cover_from_template / chap 占位符残留闸门测试。"""
@@ -95,12 +95,12 @@ def test_dropped_placeholder_passes():
 
 - [ ] **Step 2: 跑测试确认失败**
 
-Run: `cd tech-gtm-training-deck && python -m pytest tests/test_template_placeholders.py -v`
+Run: `cd autodeck && python -m pytest tests/test_template_placeholders.py -v`
 Expected: FAIL — `ImportError: cannot import name 'check_template_placeholders'`（函数未定义）。
 
 - [ ] **Step 3: 实现 `check_template_placeholders`**
 
-在 `tech-gtm-training-deck/scripts/deck_helpers.py` **末尾**追加：
+在 `autodeck/scripts/deck_helpers.py` **末尾**追加：
 ```python
 
 
@@ -154,18 +154,18 @@ def check_template_placeholders(prs, *, fail_on_prompt=True):
 
 - [ ] **Step 4: 跑测试确认通过**
 
-Run: `cd tech-gtm-training-deck && python -m pytest tests/test_template_placeholders.py -v`
+Run: `cd autodeck && python -m pytest tests/test_template_placeholders.py -v`
 Expected: PASS（4 个用例）。
 
 - [ ] **Step 5: 跑全量回归确认无破坏**
 
-Run: `cd tech-gtm-training-deck && python -m pytest tests/ -v`
+Run: `cd autodeck && python -m pytest tests/ -v`
 Expected: 全绿（既有 test_cover_pagetypes/test_arch_layers/test_network_topo 等不受影响）。
 
 - [ ] **Step 6: 提交**
 
 ```bash
-git add tech-gtm-training-deck/scripts/deck_helpers.py tech-gtm-training-deck/tests/test_template_placeholders.py
+git add autodeck/scripts/deck_helpers.py autodeck/tests/test_template_placeholders.py
 git commit -m "feat(tech-gtm): 加 check_template_placeholders 占位符残留闸门
 
 按 idx 反查版式占位符提示语,空占位符+版式带提示→报告/raise。
@@ -178,9 +178,9 @@ git commit -m "feat(tech-gtm): 加 check_template_placeholders 占位符残留�
 ### Task 2: `cover_from_template` 安全助手 + 修 `chap` 删空 idx10
 
 **Files:**
-- Modify: `tech-gtm-training-deck/scripts/deck_helpers.py`（`chap()` L83-105；新增 `cover_from_template()`）
-- Modify: `tech-gtm-training-deck/tests/conftest.py`（末尾新增 `make_section_prs` fixture）
-- Test: `tech-gtm-training-deck/tests/test_template_placeholders.py`（追加用例）
+- Modify: `autodeck/scripts/deck_helpers.py`（`chap()` L83-105；新增 `cover_from_template()`）
+- Modify: `autodeck/tests/conftest.py`（末尾新增 `make_section_prs` fixture）
+- Test: `autodeck/tests/test_template_placeholders.py`（追加用例）
 
 **Interfaces:**
 - Consumes: `dk.drop_placeholders(slide, keep_idx)`（deckkit，已存在）、`deck.P.layout(role)`；conftest 的 `make_section_prs`。
@@ -230,7 +230,7 @@ def test_cover_from_template_drop_all():
 
 chap 的 idx10 副标题占位符是 BODY 类型。默认模板 idx10 是 DATE（chrome，add_slide 不克隆到 slide），chap 测不到 idx10。fixture 把默认模板 layout 5 的 idx10 类型从 `dt`(DATE) 改成 `body`(BODY)，add_slide 就会克隆它到 slide，使 chap 能找到并删除/填充 idx10。已实测可行。
 
-在 `tech-gtm-training-deck/tests/conftest.py` 末尾追加：
+在 `autodeck/tests/conftest.py` 末尾追加：
 ```python
 def make_section_prs():
     """带章节版式(idx0 TITLE + idx10 BODY)的 prs,测 chap 的 idx10 副标题占位符。
@@ -302,7 +302,7 @@ def test_chap_with_sub_fills_idx10():
 
 - [ ] **Step 4: 跑测试确认失败**
 
-Run: `cd tech-gtm-training-deck && python -m pytest tests/test_template_placeholders.py -v -k "cover_from_template or chap"`
+Run: `cd autodeck && python -m pytest tests/test_template_placeholders.py -v -k "cover_from_template or chap"`
 Expected: FAIL — `cover_from_template` 未定义（`chap` 用例因 chap 当前不删 idx10，`test_chap_no_sub_drops_idx10` 的 `assert 10 not in idxs` 失败）。
 
 - [ ] **Step 5: 实现 `cover_from_template` + 修 `chap`**
@@ -362,18 +362,18 @@ def cover_from_template(prs, deck, layout_role, *, drop_title=True, drop_all=Fal
 
 - [ ] **Step 6: 跑测试确认通过**
 
-Run: `cd tech-gtm-training-deck && python -m pytest tests/test_template_placeholders.py -v`
+Run: `cd autodeck && python -m pytest tests/test_template_placeholders.py -v`
 Expected: PASS（全部用例，含 Task1 的 4 个 + Task2 的 4 个）。
 
 - [ ] **Step 7: 跑全量回归**
 
-Run: `cd tech-gtm-training-deck && python -m pytest tests/ -v`
+Run: `cd autodeck && python -m pytest tests/ -v`
 Expected: 全绿。
 
 - [ ] **Step 8: 提交**
 
 ```bash
-git add tech-gtm-training-deck/scripts/deck_helpers.py tech-gtm-training-deck/tests/test_template_placeholders.py tech-gtm-training-deck/tests/conftest.py
+git add autodeck/scripts/deck_helpers.py autodeck/tests/test_template_placeholders.py autodeck/tests/conftest.py
 git commit -m "feat(tech-gtm): 加 cover_from_template 助手 + 修 chap 删空 idx10
 
 cover_from_template:用模板封面版式加页后删占位符元素(保留版式装饰,消除残留)。
@@ -386,8 +386,8 @@ conftest 加 make_section_prs fixture(改 idx10 为 BODY)便携测 chap idx10。
 ### Task 3: 闸门嵌进 `new_deck.py` 脚手架 + 文档警示
 
 **Files:**
-- Modify: `tech-gtm-training-deck/scripts/new_deck.py`（SKELETON 文本）
-- Modify: `tech-gtm-training-deck/references/deck-from-template.md`
+- Modify: `autodeck/scripts/new_deck.py`（SKELETON 文本）
+- Modify: `autodeck/references/deck-from-template.md`
 
 **Interfaces:**
 - Consumes: Task1 的 `check_template_placeholders`。
@@ -422,7 +422,7 @@ SKELETON 的 build() 末尾（约 L55-57）：
 
 - [ ] **Step 2: 验证脚手架生成含闸门调用**
 
-Run: `cd tech-gtm-training-deck/scripts && python new_deck.py --profile ../tests/_arch_smoke.pptx --topic "测试" --pages 4 --out /tmp/test_skel.py 2>&1 | head; grep -c "check_template_placeholders" /tmp/test_skel.py`
+Run: `cd autodeck/scripts && python new_deck.py --profile ../tests/_arch_smoke.pptx --topic "测试" --pages 4 --out /tmp/test_skel.py 2>&1 | head; grep -c "check_template_placeholders" /tmp/test_skel.py`
 Expected: 生成的脚手架含 `check_template_placeholders` 调用（grep 计数 ≥2：1 import + 1 调用）。
 
 > 若 `--profile` 参数校验失败（它期望 .yaml），改用任意现有 profile.yaml 路径或临时造一个空 yaml；目标是验证 SKELETON 文本含闸门，不要求脚手架可运行。
@@ -460,13 +460,13 @@ The `new_deck.py` scaffold already calls it; add it to hand-written build script
 
 - [ ] **Step 4: 跑全量回归确认无破坏**
 
-Run: `cd tech-gtm-training-deck && python -m pytest tests/ -v`
+Run: `cd autodeck && python -m pytest tests/ -v`
 Expected: 全绿（new_deck 改的是 SKELETON 文本，不影响测试；文档改动无测试影响）。
 
 - [ ] **Step 5: 提交**
 
 ```bash
-git add tech-gtm-training-deck/scripts/new_deck.py tech-gtm-training-deck/references/deck-from-template.md
+git add autodeck/scripts/new_deck.py autodeck/references/deck-from-template.md
 git commit -m "feat(tech-gtm): 脚手架嵌占位符闸门 + 文档警示清空占位符失败模式
 
 new_deck 生成的 build 脚手架在 save 前调 check_template_placeholders。
@@ -490,7 +490,7 @@ deck-from-template.md 加 🔴 MUST:禁止 .text='' 清占位符,改删元素或
 cd /c/Users/KC/Documents/LoopEngineering-deck
 python -c "
 import sys
-sys.path.insert(0, r'D:/develop/luohao-skills/tech-gtm-training-deck/scripts')
+sys.path.insert(0, r'D:/develop/luohao-skills/autodeck/scripts')
 sys.path.insert(0, r'C:/Users/KC/.agents/skills/slide-maker/scripts')
 import deckkit as dk
 from deck_helpers import check_template_placeholders
@@ -515,7 +515,7 @@ Expected: `OK 闸门抓到首页残留:` + 报告 `slide 1 idx=0 提示='点击�
 cd /c/Users/KC/Documents/LoopEngineering-deck
 python -c "
 import sys
-sys.path.insert(0, r'D:/develop/luohao-skills/tech-gtm-training-deck/scripts')
+sys.path.insert(0, r'D:/develop/luohao-skills/autodeck/scripts')
 sys.path.insert(0, r'C:/Users/KC/.agents/skills/slide-maker/scripts')
 import deckkit as dk
 from deck_helpers import check_template_placeholders, cover_from_template

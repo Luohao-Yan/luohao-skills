@@ -1,7 +1,7 @@
 # 咨询叙事 deck 能力增强 — 设计文档
 
-> 日期：2026-08-26 · 范围：tech-gtm-training-deck skill（仓库版） · 参考：`AI-Story_CC_260812_Rev05.pptx`
-> 落点：`D:/develop/luohao-skills/tech-gtm-training-deck`（git 仓库内，持久） · 不动 slide-maker npm 包
+> 日期：2026-08-26 · 范围：autodeck skill（仓库版） · 参考：`AI-Story_CC_260812_Rev05.pptx`
+> 落点：`D:/develop/luohao-skills/autodeck`（git 仓库内，持久） · 不动 slide-maker npm 包
 
 ## 1. 背景与问题
 
@@ -33,7 +33,7 @@ slide-maker 整套体系围绕"演讲视觉辅助 / 一页一想法 / 少字大�
 ### 1.4 架构约束（延续 2026-08-25 spec）
 
 - `slide-maker` 是 npm 安装包，改它会被升级覆盖 → **不持久**。
-- `tech-gtm-training-deck` 仓库版（`D:/develop/luohao-skills/tech-gtm-training-deck`）是源码，有自有 `scripts/`（`deck_helpers.py` / `builtin_palettes.py` / `new_deck.py`），调 slide-maker 的 deckkit 基元组合。
+- `autodeck` 仓库版（`D:/develop/luohao-skills/autodeck`）是源码，有自有 `scripts/`（`deck_helpers.py` / `builtin_palettes.py` / `new_deck.py`），调 slide-maker 的 deckkit 基元组合。
 - **持久化改动落仓库内 tech-gtm 自有代码**，不动 slide-maker 包。新组件在 `deck_helpers.py` 里调 `dk.*` 基元组合实现（不重写 deckkit）。
 
 ## 2. 目标

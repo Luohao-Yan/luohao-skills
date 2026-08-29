@@ -2,16 +2,16 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 让 `tech-gtm-training-deck` 的封面链路可靠:cover 优先用模板自带封面(填占位符+自绘兜底,不静默吞错)、strip_branding 不误删占位符、inspect 选占位符最丰富的封面 layout。
+**Goal:** 让 `autodeck` 的封面链路可靠:cover 优先用模板自带封面(填占位符+自绘兜底,不静默吞错)、strip_branding 不误删占位符、inspect 选占位符最丰富的封面 layout。
 
 **Architecture:** 三处改动互相支撑——inspect 选对封面 layout(§3.3)→ strip 不删该 layout 的占位符(§3.2)→ cover 填占位符,缺了自绘兜底(§3.1)。改完用《龙岗政策打标》deck 回测封面正确。
 
-**Tech Stack:** python-pptx, PyYAML, pytest;skill 在 `D:\develop\luohao-skills\tech-gtm-training-deck`;依赖 slide-maker 的 deckkit。
+**Tech Stack:** python-pptx, PyYAML, pytest;skill 在 `D:\develop\luohao-skills\autodeck`;依赖 slide-maker 的 deckkit。
 
 ## Global Constraints
 
-- 工作目录:`D:\develop\luohao-skills\tech-gtm-training-deck`(git 仓库根 `D:\develop\luohao-skills`,main 分支)
-- 测试命令:`cd D:\develop\luohao-skills\tech-gtm-training-deck && python -m pytest tests/ -q`(基线 26 passed,改后必须仍绿)
+- 工作目录:`D:\develop\luohao-skills\autodeck`(git 仓库根 `D:\develop\luohao-skills`,main 分支)
+- 测试命令:`cd D:\develop\luohao-skills\autodeck && python -m pytest tests/ -q`(基线 26 passed,改后必须仍绿)
 - 真模板(回测用):`C:\Users\KC\Documents\AI热点技术培训 - 智能体记忆系统v1.0.pptx`,其 layout 15「标题幻灯片」有 idx0(标题,默认文本"金山云标准模板-大标题 38号")/ idx10(副标题)/ idx11(日期)三占位符 + 「图形 12」logo + 「文本框 10/11」品牌文本
 - 绝不 `except: pass` 静默吞错——占位符取不到要 `print("[cover] ...")` + 兜底
 - 颜色走 `deck.anchor/comparator/neutral/emphasis`(profile),不硬编 hex
@@ -56,7 +56,7 @@ def test_strip_branding_keeps_placeholder_with_brand_default_text():
 
 - [ ] **Step 2: 跑测试确认失败**
 
-Run: `cd D:\develop\luohao-skills\tech-gtm-training-deck && python -m pytest tests/test_cover_pagetypes.py::test_strip_branding_keeps_placeholder_with_brand_default_text -v`
+Run: `cd D:\develop\luohao-skills\autodeck && python -m pytest tests/test_cover_pagetypes.py::test_strip_branding_keeps_placeholder_with_brand_default_text -v`
 Expected: FAIL,`idxs == [10, 11]`(idx0 被误删)
 
 - [ ] **Step 3: 改 strip_branding(跳过占位符)**
@@ -75,20 +75,20 @@ Expected: FAIL,`idxs == [10, 11]`(idx0 被误删)
 
 - [ ] **Step 4: 跑测试确认通过**
 
-Run: `cd D:\develop\luohao-skills\tech-gtm-training-deck && python -m pytest tests/test_cover_pagetypes.py -v`
+Run: `cd D:\develop\luohao-skills\autodeck && python -m pytest tests/test_cover_pagetypes.py -v`
 Expected: PASS(含新用例 + 现有 `test_strip_branding_*`)
 
 - [ ] **Step 5: 跑全量确认无回归**
 
-Run: `cd D:\develop\luohao-skills\tech-gtm-training-deck && python -m pytest tests/ -q`
+Run: `cd D:\develop\luohao-skills\autodeck && python -m pytest tests/ -q`
 Expected: 27 passed
 
 - [ ] **Step 6: 提交**
 
 ```bash
 cd D:\develop\luohao-skills
-git add tech-gtm-training-deck/scripts/deck_helpers.py tech-gtm-training-deck/tests/test_cover_pagetypes.py
-git commit -m "fix(tech-gtm-training-deck): strip_branding 不删含品牌词的占位符
+git add autodeck/scripts/deck_helpers.py autodeck/tests/test_cover_pagetypes.py
+git commit -m "fix(autodeck): strip_branding 不删含品牌词的占位符
 
 idx0「标题 2」占位符默认文本'金山云标准模板-大标题 38号'含品牌词,
 被 _is_brand_text 连占位符一起删,导致 cover 取不到主标题位。
@@ -142,7 +142,7 @@ def test_cover_falls_back_to_first_when_only_title():
 
 - [ ] **Step 2: 跑测试确认失败**
 
-Run: `cd D:\develop\luohao-skills\tech-gtm-training-deck && python -m pytest tests/test_inspect_cover.py -v`
+Run: `cd D:\develop\luohao-skills\autodeck && python -m pytest tests/test_inspect_cover.py -v`
 Expected: FAIL(`test_cover_picks_placeholder_richest` 得 11 而非 15,因首个命中)
 
 - [ ] **Step 3: 改 pick_key_layouts(cover 选占位符最丰富者)**
@@ -186,12 +186,12 @@ def pick_key_layouts(layouts):
 
 - [ ] **Step 4: 跑测试确认通过**
 
-Run: `cd D:\develop\luohao-skills\tech-gtm-training-deck && python -m pytest tests/test_inspect_cover.py -v`
+Run: `cd D:\develop\luohao-skills\autodeck && python -m pytest tests/test_inspect_cover.py -v`
 Expected: PASS
 
 - [ ] **Step 5: 跑全量 + 真模板验证**
 
-Run: `cd D:\develop\luohao-skills\tech-gtm-training-deck && python -m pytest tests/ -q`
+Run: `cd D:\develop\luohao-skills\autodeck && python -m pytest tests/ -q`
 Expected: 29 passed
 再跑:`python scripts/inspect_and_profile.py "C:\Users\KC\Documents\AI热点技术培训 - 智能体记忆系统v1.0.pptx" --out /tmp/covercheck 2>&1 | head -3`(或 Windows 临时目录),确认 `layouts: ... key roles: {'cover': 15, ...}`。
 
@@ -199,8 +199,8 @@ Expected: 29 passed
 
 ```bash
 cd D:\develop\luohao-skills
-git add tech-gtm-training-deck/scripts/inspect_and_profile.py tech-gtm-training-deck/tests/test_inspect_cover.py
-git commit -m "feat(tech-gtm-training-deck): inspect cover role 选占位符最丰富的 layout
+git add autodeck/scripts/inspect_and_profile.py autodeck/tests/test_inspect_cover.py
+git commit -m "feat(autodeck): inspect cover role 选占位符最丰富的 layout
 
 原启发式首个命中,选了 layout 11(只标题)而非 layout 15(标题+副标题+日期)。
 改为收集所有封面候选,按占位符丰富度打分(TITLE+2/BODY/DATE+1)选最高。
@@ -275,7 +275,7 @@ def test_cover_template_fallback_draws_when_no_cover_layout(capfd):
 
 - [ ] **Step 2: 跑测试确认失败**
 
-Run: `cd D:\develop\luohao-skills\tech-gtm-training-deck && python -m pytest tests/test_cover_pagetypes.py::test_cover_uses_template_fills_placeholders tests/test_cover_pagetypes.py::test_cover_template_fallback_draws_when_no_cover_layout -v`
+Run: `cd D:\develop\luohao-skills\autodeck && python -m pytest tests/test_cover_pagetypes.py::test_cover_uses_template_fills_placeholders tests/test_cover_pagetypes.py::test_cover_template_fallback_draws_when_no_cover_layout -v`
 Expected: FAIL(现有 cover 在 blank 自绘,不填模板占位符)
 
 - [ ] **Step 3: 改 cover(优先模板 + 兜底)**
@@ -373,20 +373,20 @@ def _cover_draw(prs, deck, subject, subtitle, meta, style):
 
 - [ ] **Step 4: 跑测试确认通过**
 
-Run: `cd D:\develop\luohao-skills\tech-gtm-training-deck && python -m pytest tests/test_cover_pagetypes.py -v`
+Run: `cd D:\develop\luohao-skills\autodeck && python -m pytest tests/test_cover_pagetypes.py -v`
 Expected: PASS(新用例 + 现有 band/hero 用例——注意现有 `test_cover_band_makes_one_slide_no_logo` 用 `style="band"` 默认 use_template=True 会走模板,但 `make_test_prs` 无 cover layout,会回退自绘,仍应过)
 
 - [ ] **Step 5: 跑全量**
 
-Run: `cd D:\develop\luohao-skills\tech-gtm-training-deck && python -m pytest tests/ -q`
+Run: `cd D:\develop\luohao-skills\autodeck && python -m pytest tests/ -q`
 Expected: 31 passed
 
 - [ ] **Step 6: 提交**
 
 ```bash
 cd D:\develop\luohao-skills
-git add tech-gtm-training-deck/scripts/deck_helpers.py tech-gtm-training-deck/tests/test_cover_pagetypes.py
-git commit -m "feat(tech-gtm-training-deck): cover 优先模板封面+填占位符兜底,不静默吞错
+git add autodeck/scripts/deck_helpers.py autodeck/tests/test_cover_pagetypes.py
+git commit -m "feat(autodeck): cover 优先模板封面+填占位符兜底,不静默吞错
 
 默认 use_template=True:用模板封面 layout,按占位符 type 填(TITLE→subject/BODY→subtitle,meta),
 取不到自绘兜底并 log(绝不 except:pass)。主标题字号下限 44pt。
@@ -418,15 +418,15 @@ Co-Authored-By: Kscc <noreply@owtffssent.com>"
 
 - [ ] **Step 3: 验证文档无残留旧哲学**
 
-Run: `cd D:\develop\luohao-skills\tech-gtm-training-deck && grep -n "避免继承模板\|在 blank layout 上自绘" SKILL.md references/deck-from-template.md`
+Run: `cd D:\develop\luohao-skills\autodeck && grep -n "避免继承模板\|在 blank layout 上自绘" SKILL.md references/deck-from-template.md`
 Expected: 无输出(旧哲学描述已清)
 
 - [ ] **Step 4: 提交**
 
 ```bash
 cd D:\develop\luohao-skills
-git add tech-gtm-training-deck/SKILL.md tech-gtm-training-deck/references/deck-from-template.md
-git commit -m "docs(tech-gtm-training-deck): 同步封面链路新哲学(优先模板+兜底+strip不删占位符)
+git add autodeck/SKILL.md autodeck/references/deck-from-template.md
+git commit -m "docs(autodeck): 同步封面链路新哲学(优先模板+兜底+strip不删占位符)
 
 Co-Authored-By: Kscc <noreply@owtffssent.com>"
 ```

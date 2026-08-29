@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""pathguard.py — 写盘路径安全护栏(防 CWE-22 路径穿越)。
+
+本 skill 的脚本会把 用户输入的路径(CLI 参数 / brief.outdir)拼进 open(...,"w"):
+    new_deck 的 --out、inspect_and_profile 的 --out、brief 的 outdir ...
+若直接写,用户(或被诱导传参)可用 ../ 把产物写到预期目录之外。这里在写盘前统一校验:
+
+  unsafe(path)              -> True:路径含 ".." 穿越组件(含 Windows 反斜杠写法)
+  ensure_no_dotdot(path)    -> 拒绝任何含 ".." 组件的路径,否则回 path
+  ensure_inside(path, base) -> 解析后必须落在 base(默认 CWD)之内,否则抛 ValueError
+
+纯函数、无 IO 副作用。写盘处 import pathguard 后先过护栏再 open。
+"""
+import os
+
+def _parts(path):
+    """把路径按分隔符拆成组件,兼容 Windows 反斜杠('..\\evil')。"""
+    return str(path).replace("\\", os.sep).split(os.sep)
+
+def unsafe(path):
+    """是否含 '..' 目录穿越组件。含 -> True(拒绝写)。"""
+    return ".." in _parts(path)
+
+def ensure_no_dotdot(path):
+    """拒绝含 '..' 组件的路径(穿越逃逸的根因);干净则原样返回。"""
+    if unsafe(path):
+        raise ValueError(f"path contains '..' traversal component: {path!r}")
+    return path
+
+def ensure_inside(path, base=None):
+    """解析后必须落在 base(默认当前工作目录)之内;越界抛 ValueError。"""
+    base = os.path.abspath(base or os.curdir)
+    full = os.path.abspath(path)
+    if full != base and not full.startswith(base + os.sep):
+        raise ValueError(f"refusing to write outside {base}: {path!r}")
+    return path
+
+def safe_out_path(path, base=None):
+    """写盘前统一护栏:拒绝 '..' + 约束在 base(CWD)内,返回原 path。"""
+    ensure_no_dotdot(path)
+    return ensure_inside(path, base)

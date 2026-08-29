@@ -1,5 +1,5 @@
 ---
-name: tech-gtm-training-deck
+name: autodeck
 description: >-
   Turn a technical subject into a leadership-ready training package: investigate
   the source (local code, installed apps, public info) → write a structured
@@ -56,10 +56,10 @@ is code, not agent improvisation:
 ```python
 import os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))          # 这段脚本所在目录
-# tech-gtm-training-deck/scripts(本 skill 的 scripts):
+# autodeck/scripts(本 skill 的 scripts):
 SKILL_SCRIPTS = os.path.join(HERE, "..", "scripts") if os.path.isdir(
     os.path.join(HERE, "..", "scripts")) else os.path.join(os.path.expanduser("~"),
-    ".claude", "skills", "tech-gtm-training-deck", "scripts")
+    ".claude", "skills", "autodeck", "scripts")
 sys.path.insert(0, SKILL_SCRIPTS)
 import brief
 
@@ -239,8 +239,8 @@ both:
 npx skills add addsumtech/slides_maker -g -y
 
 # 2. this skill (replace <your-github-user> with your repo when published)
-npx skills add <your-github-user>/tech-gtm-training-deck -g -y
-#   or, before publishing:  git clone <repo> ~/.claude/skills/tech-gtm-training-deck/
+npx skills add <your-github-user>/autodeck -g -y
+#   or, before publishing:  git clone <repo> ~/.claude/skills/autodeck/
 
 # 3. verify + install python deps
 python check_env.py

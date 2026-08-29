@@ -1,6 +1,6 @@
 # 模板 PPT 母版占位符残留修复 — 设计文档
 
-> 日期：2026-08-25 · 范围：tech-gtm-training-deck skill 持久化修复 · 落点：luohao-skills 仓库内（不动 npm 安装的 slide-maker 包）
+> 日期：2026-08-25 · 范围：autodeck skill 持久化修复 · 落点：luohao-skills 仓库内（不动 npm 安装的 slide-maker 包）
 
 ## 1. 问题
 
@@ -34,7 +34,7 @@ T(s, 1.5, 1.75, ..., "Loop Engineering", 44, RED, ...)   # 另手绘红色标题
 
 ### 仓库现状（与 ~/.claude 副本差异）
 
-仓库 `D:/develop/luohao-skills/tech-gtm-training-deck` 是源（最新），`~/.claude/skills/tech-gtm-training-deck` 是旧副本（非软链）。**仓库版 deck_helpers.py 已成熟**：已有 `cover(prs, deck, subject, subtitle, meta, style="band"|"hero")`（用 blank 版式自绘，避开封面占位符）、`strip_branding(prs)`（清母版/版式 logo+版权页脚）。文档 `references/deck-from-template.md` 已明确正确路径：`open_template → strip_branding → cover()`，并已记录"inherited template logo/branding"失败模式。
+仓库 `D:/develop/luohao-skills/autodeck` 是源（最新），`~/.claude/skills/autodeck` 是旧副本（非软链）。**仓库版 deck_helpers.py 已成熟**：已有 `cover(prs, deck, subject, subtitle, meta, style="band"|"hero")`（用 blank 版式自绘，避开封面占位符）、`strip_branding(prs)`（清母版/版式 logo+版权页脚）。文档 `references/deck-from-template.md` 已明确正确路径：`open_template → strip_branding → cover()`，并已记录"inherited template logo/branding"失败模式。
 
 **结论**：正确的 skill 用法本可规避此 bug。LoopEngineering 的 build.py 是早期手写脚本，没走推荐路径（没 `strip_branding`、没 `cover()`），用了错误写法。**helper 层不缺正确路径，缺的是"阻止构建者写错"的确定性闸门**。
 
@@ -128,7 +128,7 @@ def check_template_placeholders(prs, *, fail_on_prompt=True):
 
 ### 2.4 文档警示
 
-`tech-gtm-training-deck/references/deck-from-template.md`：在 cover/strip_branding 失败模式段后加一条 🔴 MUST：
+`autodeck/references/deck-from-template.md`：在 cover/strip_branding 失败模式段后加一条 🔴 MUST：
 
 > **禁止用 `placeholder.text = ""` 清空占位符**——空占位符仍会渲染版式/母版的提示语（如"点击添加页面大标题"）。要自绘就**删除占位符元素**（`cover()` 用 blank 版式 / `cover_from_template(drop_title=True)` / `dk.drop_placeholders`），或**填充它**。构建期 `check_template_placeholders(prs)` 会硬失败捕获此类残留——它按 idx 反查版式占位符提示语，措辞无关。
 
@@ -151,7 +151,7 @@ def check_template_placeholders(prs, *, fail_on_prompt=True):
 
 ## 4. 验证
 
-1. `cd tech-gtm-training-deck && python -m pytest tests/` 全绿（含新增 test_template_placeholders）。
+1. `cd autodeck && python -m pytest tests/` 全绿（含新增 test_template_placeholders）。
 2. 可选验证闸门有效：临时在 LoopEngineering build.py save 前加 `check_template_placeholders(prs)`，跑构建 → 应 raise 并报 `slide 1 idx=0 提示='点击添加页面大标题 30号'`（不交付，仅证闸门能抓首页 bug）。
 3. 把封面改成 `cover_from_template(drop_title=True)` 后重跑 → 不再 raise（证修复路径有效）。
 

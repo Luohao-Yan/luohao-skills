@@ -1,12 +1,12 @@
-# tech-gtm-training-deck 封面链路重设计
+# autodeck 封面链路重设计
 
 - **日期**:2026-08-19
-- **skill**:`D:\develop\luohao-skills\tech-gtm-training-deck`
+- **skill**:`D:\develop\luohao-skills\autodeck`
 - **触发**:用该 skill 生成《龙岗政策打标》deck 时,封面链路连续踩了四个坑,全部是 skill 层面的缺陷,非用户操作问题。本 spec 据此重设计封面链路。
 
 ## 1. 问题(实战证据,非假设)
 
-用 `tech-gtm-training-deck` 生成 deck 时,封面阶段连续四次出错:
+用 `autodeck` 生成 deck 时,封面阶段连续四次出错:
 
 | # | 现象 | 根因(skill 层面) |
 |---|---|---|
@@ -115,7 +115,7 @@ if any(k in n for k in ["标题幻灯片","标题页","Title Slide"]) and "cover
   - 用例 D:use_template=False 仍工作(band/hero 不崩)。
 - **strip_branding 新用例**(可能新文件 `test_strip_branding.py`):用现有模板(其 layout 15 的 idx0 默认文本含"金山云"、且「图形 12」是 layout 级 logo)断言:strip 后 **idx0 占位符仍保留**(`[0,10,11]`),且「图形 12」logo 被清。这是 #3/#5 的回归保护。
 - **inspect 用例**(扩 `test_template_pool.py` 或新文件):对现有两个模板跑 inspect,断言 `cover` role = 占位符最丰富者(本模板 = 15,不是 11)。
-- 所有测试在 `D:\develop\luohao-skills\tech-gtm-training-deck` 跑 `pytest tests/` 通过。
+- 所有测试在 `D:\develop\luohao-skills\autodeck` 跑 `pytest tests/` 通过。
 
 ## 6. 验收标准
 
