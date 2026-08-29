@@ -2,8 +2,14 @@
 # -*- coding: utf-8 -*-
 """new_deck.py — 给定 profile.yaml + 页数大纲,生成一个 build 脚手架脚本是 Stage 3 的起点:同事跑完 inspect_and_profile 拿到 profile.yaml 后,
 用它生成一个可编辑的 build_<topic>.py(已配好:deckkit import、profile 加载、
-deck_helpers、封面/目录/章节页/内容页/结论/附录的占位结构、lint 门禁、save)。
+deck_helpers、叙事弧页序的占位结构、lint 门禁、save)。
 同事只需把每页的占位文字换成自己的内容。
+
+叙事合同:生成的占位页不再叫「内容页N」,而是固定的叙事角色页序
+(封面→目录→钩子·纠偏→关键发现→定位→深入·机制→战略→追问→应对→结论→附录),
+且每页 notes 强制含【承上】【本页】【启下】三段,让从脚手架填出来的 deck 天生带承接。
+storyline 的角色槽位与 --pages 语义:内容页在 6 个叙事槽(hook/na_insight/position/deep/
+strategy/追问/应对)之间铺排,超出部分均匀分配到各内容槽。
 
 用法:
     python new_deck.py --profile profile.yaml --topic "我的技术主题" --pages 8 \\
@@ -11,6 +17,7 @@ deck_helpers、封面/目录/章节页/内容页/结论/附录的占位结构、
     python build_my-topic.py    # 生成 deck;需先有用户 .pptx 模板路径
 """
 import argparse, os, textwrap
+import pathguard
 
 SKELETON = '''# -*- coding: utf-8 -*-
 """build_{slug}.py — {topic}(给领导培训 deck)
@@ -62,15 +69,86 @@ if __name__ == "__main__":
 '''
 
 PAGE_STUB = '''
-    # -------- {n}. {label} --------
+    # -------- {n}. {label} ({role_tag}) --------
     s = prs.slides.add_slide(prs.slide_layouts[D.P.layout("{role}")])
-    set_title(s, "{label}", D.anchor)
-    notes(s, "{label} 的讲者话术:把详细内容放这里,幻灯片只留短语。")
+    set_title(s, "{title}", D.anchor)   # 断言式标题(一句话),别写"第N页"
+    notes(s, "{title} \\n\\n"
+             "【承上】{carried_from} \\n"
+             "【本页】{beat} \\n"
+             "【启下】{leads_to} \\n"
+             "把详细内容放这里,幻灯片只留短语。")
 '''
 
 def slugify(t):
     import re
     return re.sub(r"[^a-z0-9_-]+", "-", t.lower()).strip("-") or "deck"
+
+def build_scaffold(topic, pages=8):
+    """生成叙事弧版 build 脚手架源码(纯字符串,不写盘)。给 main() 与测试复用。"""
+    slug = slugify(topic)
+    # 叙事弧页序(storyline 的固定角色槽位,与 deck-reference-layout.md 的叙事弧一致)。
+    # 每页除了标题占位,还预填【承上】【本页】【启下】三段讲者话术骨架,让 deck 天生带承接。
+    # 固定页:封面(1)、目录(2)、结论(倒数第2)、附录(最后1页)。
+    n_content = max(1, pages - 4)          # 可自由铺排的内容槽数
+    arc = [
+        # label,             title占位,             role,     role_tag
+        ("钩子·先纠偏",       "先放下一个常见误解",    "content", "hook"),
+        ("关键发现",          "最能汇报的一条发现",    "dark",    "highlight"),
+        ("定位·进入主题",     "这个概念用一句话说清",  "content", "position"),
+        ("深入·机制/比喻",    "它到底怎么运作(signature move 峰值)", "content", "deep"),
+        ("战略·我们能做什么", "对我们的价值/取舍",    "content", "strategy"),
+        ("追问·存疑",         "先把异议摆上台面",      "content", "question"),
+        ("应对·落地路径",     "下一步具体怎么做",      "content", "action"),
+        ("总结·回顾主线",     "回到最初那个承诺",      "content", "wrap"),
+    ]
+    stubs = []
+    stubs.append(PAGE_STUB.format(
+        n=1, label="封面", role="cover", role_tag="storyline: 断言+故事线",
+        title="<封面副标题/purpose 的故事线>",
+        carried_from="(开场)抛出一个领导者会在意的判断",
+        beat="用一句话立住整份 deck 的主张",
+        leads_to="用目录把「领导关心的 N 问」摊开",
+    ))
+    stubs.append(PAGE_STUB.format(
+        n=2, label="目录", role="content", role_tag="agenda",
+        title="今天要回答的领导关心的 N 问",
+        carried_from="承接封面承诺的 statement",
+        beat="把叙事弧压缩成 3~5 个问题",
+        leads_to="进入第 1 个误区/纠偏",
+    ))
+    # 内容槽:动态铺排到 8 个叙事角色槽位(页数多于角色数则循环复用末尾角色,少于则截断)。
+    # 绝不出现「内容页N」这种裸编号页。
+    order = []
+    for i in range(n_content):
+        if i < len(arc):
+            order.append(arc[i])
+        else:
+            order.append(arc[i % len(arc)])
+    for i, (label, tpl, role, role_tag) in enumerate(order):
+        stubs.append(PAGE_STUB.format(
+            n=3 + i, label=label, role=role, role_tag=f"role={role_tag}",
+            title=tpl,
+            carried_from="承上一页:" + ("<上一页讲了什么,一句话>" if i else "封面承诺"),
+            beat="本页讲:" + label + "的核心论断",
+            leads_to="引出下一页:" + (order[i + 1][0] if i + 1 < len(order) else "结论"),
+        ))
+    conc_idx = 3 + len(order)
+    app_idx = conc_idx + 1
+    stubs.append(PAGE_STUB.format(
+        n=conc_idx, label="结论·三段式收尾", role="red_conclusion", role_tag="close",
+        title="回到最初那句话:主张 + 证据 + 行动",
+        carried_from=f"承接上一页(第 {conc_idx-1} 页)",
+        beat="三段式:重申主张 → 给最硬证据 → 落到一个行动",
+        leads_to="(结束)附录是证据出处,听众可自行核验",
+    ))
+    stubs.append(PAGE_STUB.format(
+        n=app_idx, label="附录·证据出处", role="content", role_tag="appendix",
+        title="证据出处/延伸阅读",
+        carried_from=f"承接上一页结论(第 {conc_idx} 页)",
+        beat="列数据/引用/出处,不含新论点",
+        leads_to="(无,收尾)",
+    ))
+    return SKELETON.format(slug=slug, topic=topic, PAGE_STUBS="".join(stubs))
 
 def main():
     ap = argparse.ArgumentParser(description="生成 build 脚手架")
@@ -79,19 +157,9 @@ def main():
     ap.add_argument("--pages", type=int, default=8, help="页数(含封面/目录/附录)")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
-    slug = slugify(args.topic)
-    out = args.out or f"build_{slug}.py"
-    # 简单页序:封面 + 目录 + N内容 + 结论 + 附录
-    stubs = []
-    stubs.append(PAGE_STUB.format(n=1, label="封面", role="cover"))
-    stubs.append(PAGE_STUB.format(n=2, label="目录", role="content"))
-    n_content = max(1, args.pages - 3)
-    for i in range(n_content):
-        stubs.append(PAGE_STUB.format(n=3+i, label=f"内容页{i+1}", role="content"))
-    stubs.append(PAGE_STUB.format(n=3+n_content, label="结论", role="red_conclusion"))
-    stubs.append(PAGE_STUB.format(n=4+n_content, label="附录·证据出处", role="content"))
-    code = SKELETON.format(slug=slug, topic=args.topic, PAGE_STUBS="".join(stubs))
-    open(out, "w", encoding="utf-8").write(code)
+    out = args.out or f"build_{slugify(args.topic)}.py"
+    code = build_scaffold(args.topic, args.pages)
+    pathguard.write_guarded(out, code)   # CWE-22:护栏内写盘,拒绝 ../ 越界
     print(f"-> {out}")
     print("next: 改 TPL 路径为你的 .pptx,逐页填内容,然后 python {out}".replace("{out}", out))
 

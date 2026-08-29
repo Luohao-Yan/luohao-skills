@@ -3,13 +3,26 @@ import os, tempfile
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 import brief
+import pathguard
 
-def test_defaults_has_13_fields():
-    assert len(brief.DEFAULTS) == 13
+def test_defaults_has_14_fields():
+    assert len(brief.DEFAULTS) == 14
     for k in ["subject","tilt","audience","purpose","pages","animation",
               "template","language","emphasis","fidelity",
-              "need_arch_diagram","need_network_topo","outdir"]:
+              "need_arch_diagram","need_network_topo","storyline","outdir"]:
         assert k in brief.DEFAULTS
+
+def test_storyline_default_empty_and_preserved():
+    # 没给 storyline → 默认空 dict,不报错
+    m = brief.merge_with_defaults({"subject":"X","tilt":"tech"})
+    assert m["storyline"] == {}
+    # 给了 storyline(dict) → 原样保留(agent 在 Stage 0/2 推导填写)
+    sl = {"arc":"纠偏→发现→定位→深入→战略→追问→应对→收尾",
+          "peak": 6,
+          "beats":[{"page":3,"role":"hook纠偏","takeaway":"别再混为一谈",
+                    "from":"封面承诺","to":"关键发现"}]}
+    m2 = brief.merge_with_defaults({"subject":"X","tilt":"tech","storyline":sl})
+    assert m2["storyline"] == sl
 
 def test_merge_with_defaults_fills_missing():
     ans = {"subject":"X","tilt":"tech","audience":"team"}
@@ -29,17 +42,20 @@ def test_need_arch_diagram_derived_from_tilt():
 
 def test_write_and_load_roundtrip(tmp_path):
     p = str(tmp_path / "brief.yaml")
-    data = brief.merge_with_defaults({"subject":"DeepSeek-V4-Flash 部署","tilt":"tech"})
+    sl = {"arc":"纠偏→发现→定位→深入→战略→追问→应对→收尾","peak":6,
+          "beats":[{"page":3,"role":"hook纠偏","takeaway":"别再混为一谈"}]}
+    data = brief.merge_with_defaults({"subject":"DeepSeek-V4-Flash 部署","tilt":"tech",
+                                      "storyline":sl})
     brief.write_brief(data, p)
     loaded = brief.load_brief(p)
     assert loaded["subject"] == "DeepSeek-V4-Flash 部署"
     assert loaded["need_arch_diagram"] is True
+    assert loaded["storyline"] == sl        # 叙事弧 dict 经 YAML 往返保留
 
 def test_load_brief_fills_missing_field(tmp_path):
     """Global Constraint:字段缺失用默认兜底,不报错。"""
     p = str(tmp_path / "brief.yaml")
-    with open(p,"w",encoding="utf-8") as f:
-        f.write("subject: X\ntilt: balanced\n")
+    pathguard.write_guarded(p, "subject: X\ntilt: balanced\n", inside=False)
     loaded = brief.load_brief(p)
     assert loaded["fidelity"] == "traced"   # 缺失→默认
     assert loaded["pages"] == "15-20"
@@ -82,7 +98,7 @@ def test_stage0_brief_non_interactive_existing_wins():
 
 def test_stage0_brief_interactive_no_missing_never_asks():
     """交互 + 全预填:无 missing 就不问,直接返回。"""
-    full = brief.merge_with_defaults({"subject":"X"})   # 13 字段全齐
+    full = brief.merge_with_defaults({"subject":"X"})   # 14 字段全齐
     calls = []
     def asker(missing):
         calls.append(missing); return {}
@@ -151,7 +167,7 @@ def test_stage0_brief_zero_interaction_roundtrip(tmp_path):
                            existing=None, interactive=False, asker=trap_asker)
     # 没问 = 没 hang
     assert calls == []
-    # 13 字段全齐(经 write/load 往返后仍齐)
+    # 14 字段全齐(经 write/load 往返后仍齐)
     p = str(tmp_path / "brief.yaml")
     brief.write_brief(b, p)
     loaded = brief.load_brief(p)

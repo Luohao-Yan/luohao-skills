@@ -139,6 +139,23 @@ def notes(slide, txt):
     """写讲者备注(讲稿)。不在幻灯片上渲染,只在演示视图显示。"""
     dk.speaker_notes(slide, txt)
 
+def beat(slide, point, *, carried_from, leads_to, notes_txt=""):
+    """每页叙事合同(beat):把【承上】【本页】【启下】写进讲稿,让 deck 天生带承接。
+
+    这是给"上下承接"立下的硬约定:每页讲者备注都以三段开场——
+      【承上】此页之前讲了什么(承接上一节,一句话)
+      【本页】此页要立的主张/要点(point)
+      【启下】讲完这页听众的心被引向下一页的哪个问题
+    任何一页都不该孤立存在;抽掉其中一段,这页就从"叙事的一环"退化成"一张信息页"。
+    notes_txt 里的额外话术会跟在三段之后。
+
+    等价:notes(slide, f"【承上】{carried_from}\\n【本页】{point}\\n【启下】{leads_to}\\n{notes_txt}")
+    """
+    head = f"【承上】{carried_from}\n【本页】{point}\n【启下】{leads_to}"
+    if notes_txt:
+        head += "\n" + notes_txt
+    notes(slide, head)
+
 
 # ---- 分层架构图 (arch_layers) ----
 # 复刻珠海项目孵化 PPT p05 画法:全宽色带分层 + 层内组件块 + 交替浅色

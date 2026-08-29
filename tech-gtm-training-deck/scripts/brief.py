@@ -6,6 +6,7 @@ Stage 0 访谈把用户答案合并进默认值,写 brief.yaml;Stage 1/2/3 读�
 """
 import os, re
 import yaml
+import pathguard
 
 DEFAULTS = {
     "subject": "",
@@ -20,6 +21,7 @@ DEFAULTS = {
     "fidelity": "traced",          # traced / lite / minimal
     "need_arch_diagram": False,    # bool;tilt=tech 推导 true,用户可覆盖
     "need_network_topo": False,    # bool;默认 false
+    "storyline": {},               # 叙事弧(可选):{arc, peak, beats[]};Stage 0/2 由 agent 依据 subject/emphasis/tilt/audience 推导填写
     "outdir": "",                  # 产物目录
 }
 
@@ -39,7 +41,9 @@ def _derive(subject, tilt):
     return d
 
 def merge_with_defaults(answers):
-    """访谈答案 + 默认值 -> 完整 13 字段 dict。用户显式值优先,缺失兜底。"""
+    """访谈答案 + 默认值 -> 完整 14 字段 dict。用户显式值优先,缺失兜底。
+    storyline 是可选 dict(空 {} 默认):用户/agent 给了就原样保留;没给就空着,
+    由 Stage 0/2 的 agent 依据 subject/emphasis/tilt/audience 推导填写。"""
     m = dict(DEFAULTS)
     m.update({k: v for k, v in (answers or {}).items() if v is not None and v != ""})
     # need_arch_diagram: 若用户没显式给,由 tilt 推导
@@ -54,11 +58,13 @@ def merge_with_defaults(answers):
     return m
 
 def write_brief(data, path):
-    """写 brief.yaml(有序,字段顺序固定便于人读)。"""
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    """写 brief.yaml(有序,字段顺序固定便于人读)。
+    CWE-22 护栏:只拒 '..' 穿越(ensure_no_dotdot),不做 CWD 约束——
+    brief 写到显式绝对路径(用户 outdir / pytest tmp_path),干净绝对路径照常。"""
     ordered = {k: data.get(k, DEFAULTS.get(k)) for k in DEFAULTS}
-    with open(path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(ordered, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    text = yaml.safe_dump(ordered, allow_unicode=True, sort_keys=False, default_flow_style=False)
+    path = pathguard.write_guarded(path, text, inside=False)
+    return path
 
 def load_brief(path):
     """读 brief.yaml,缺失字段用默认兜底(Global Constraint:不报错)。"""
@@ -66,8 +72,9 @@ def load_brief(path):
         raw = yaml.safe_load(f) or {}
     return merge_with_defaults(raw)
 
-# Stage 0 访谈要逐字段问用户的字段集(13 字段里除掉 subject——subject 是调 stage0_brief
-# 的入参,不问;need_arch_diagram/need_network_topo 由 tilt/调研推导,也不进交互)。
+# Stage 0 访谈要逐字段问用户的字段集(14 字段里除掉 subject——subject 是调 stage0_brief
+# 的入参,不问;need_arch_diagram/need_network_topo 由 tilt/调研推导,不单独问;
+# storyline 是叙事弧,由 agent 依据 subject/emphasis/tilt/audience 推导,也不进交互)。
 # 真正需要问用户的是这 8 个方向选择字段:
 _INTERACTIVE_FIELDS = ["tilt","audience","purpose","pages","animation","template",
                        "language","emphasis","fidelity"]
@@ -93,7 +100,7 @@ def stage0_brief(subject, existing=None, interactive=True, asker=None):
     无论哪条路,最后都过 merge_with_defaults 兜底(推导 need_arch_diagram/purpose/outdir,
     显式值优先,缺失用默认,不报错)。
 
-    返回完整 13 字段 dict(等价 merge_with_defaults 输出)。本函数不写盘——写盘用 write_brief。
+    返回完整 14 字段 dict(等价 merge_with_defaults 输出)。本函数不写盘——写盘用 write_brief。
     """
     base = {"subject": subject}
     if existing:

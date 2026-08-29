@@ -137,16 +137,53 @@ to draw. If a field is missing, `brief.load_brief` falls back to defaults
 
 | Stage | What it does | Where the method lives |
 |---|---|---|
-| **0. Brief** | Lock audience/tilt/pages/animation/template/language/emphasis/fidelity + need_arch_diagram/need_network_topo into `brief.yaml` (13 fields). **Interactive**: AskUserQuestion interview, ask only unfilled fields, all defaults skippable. **Unattended**: no interview — `stage0_brief(interactive=False)` builds from existing + defaults, never hangs. Drives every later stage. | this file §Stage 0; `scripts/brief.py` `stage0_brief` |
+| **0. Brief** | Lock audience/tilt/pages/animation/template/language/emphasis/fidelity + need_arch_diagram/need_network_topo + storyline (叙事合同) into `brief.yaml` (14 fields). **Interactive**: AskUserQuestion interview, ask only unfilled fields, all defaults skippable. **Unattended**: no interview — `stage0_brief(interactive=False)` builds from existing + defaults, never hangs. Drives every later stage. See §Storyline below for how the story arc is derived and flows to Stage 2/3. | this file §Stage 0; `scripts/brief.py` `stage0_brief` |
 | **1. Investigate** | Read the source to line-level (local code, installed apps, public info); never fabricate; attach `file_path:line` to every claim. | `references/investigate.md` |
 | **2. Training doc** | Turn the investigation into a structured training `.md` (TL;DR → what is it → how it works → object inventory → why it matters → comparison → recommendations → evidence appendix). | `references/training-doc.md` |
-| **3. Deck from template** | Turn the doc + the user's `.pptx` template into a brand-consistent deck, via the **slide-maker** skill: inspect → profile → design gate → build → render → critic (2 rounds) → fix → gate(waived) → deliver. | `references/deck-from-template.md` |
+| **3. Deck from template** | Turn the doc + the user's `.pptx` template into a brand-consistent deck, via the **slide-maker** skill: inspect → profile → design gate → build → render → critic (2 rounds) → fix → gate(waived) → deliver. Build rhythm is **narrative-mandatory**: every page's speaker notes open with 承上→本页→启下 (use `beat()`), and the page order follows the storyline arc — never a "page N" checklist. See §Storyline below. | `references/deck-from-template.md` |
 
 The four stages (Brief → Investigate → Training doc → Deck) are one pipeline and one mind's job — the Brief stage is up-front, the other three are the through-line. Do not split a single
 subject's investigation/document/deck across blind agents. Fan out only across
 *independent* investigation lines (different source types), then synthesize back
 into one mind before the doc. See `references/workflow.md` for the stage-to-stage
 handoff and which steps are mechanical vs. need human judgment.
+
+## Storyline (叙事合同) — how decks get 上下承接
+
+A deck feels "硬凑" when the arc lives nowhere structural — `content页1/2/3` scaffolding and
+a one-line `purpose` can't carry a narrative. So the pipeline makes the story a **first-class
+data structure** (`storyline` in `brief.yaml`) and the design gate + build rhythm **enforce**
+it. The whole through-line:
+
+- **Stage 0/2 — derive the storyline.** `storyline` is *not* part of the 4-round interview (keeps
+  unattended runs from hanging). The agent writes it into `brief.yaml` while researching/writing
+  the training doc, from `subject/emphasis/tilt/audience`. If the user already supplied a
+  `storyline`, merge + prefer theirs. Shape:
+  ```yaml
+  storyline:
+    arc:  纠偏 → 关键发现 → 定位 → 深入(架构/机制) → 战略 → 追问 → 应对 → 收尾
+    peak: 6                       # signature move 峰值页(机制/比喻那页)
+    beats:
+      - { page: 3, role: "hook纠偏",  takeaway: "别再混为一谈",  from: "封面承诺", to: "关键发现" }
+      - { page: 6, role: "深入机制",  takeaway: "Agent=模型+Harness", from: "定位",   to: "战略" }
+      # ... 每页一个 beat:role/一句话takeaway/承上(from)/启下(to)
+  ```
+  `purpose` stays a one-line cover subtitle (unchanged, backward-compatible).
+- **Stage 3 — generate the narrative scaffold.** `new_deck.py` no longer emits `内容页N`;
+  it emits the approved arc page order (封面→目录→钩子·纠偏→关键发现→定位→深入·机制→
+  战略→追问→应对→总结→结论→附录), each stub pre-filled with 承上/本页/启下 notes. See
+  `references/deck-reference-layout.md` §页型编排骨架.
+- **Stage 3 — every page carries 承上→本页→启下.** Use `deck_helpers.beat(slide, point,
+  carried_from=..., leads_to=...)` so the transition is written into the speaker notes, not
+  left implicit. This is a mandatory build step (like `strip_branding`/`cover`), not optional.
+- **Design gate — check the narrative, not just density.** `.deck-gates.json` carries a
+  `storyline` block (arc/peak/beats); critic self-check verifies each page has a role, no two
+  adjacent pages share a page-type, every page's notes state 承上/启下, and the peak page is
+  led into/out of by structure diagrams. See `references/deck-from-template.md` §design gate.
+
+**Why this order sells**: 先立主张(封面/钩子) → 给硬证据(关键发现) → 给判断(定位) →
+深入机制让"为什么可信"(peak) → 落到我们能做什么(战略) → 替听众先把异议问出来(追问) →
+给路(应对) → 收回到最初承诺(结论). Each beat answers the one the previous page just raised.
 
 ## Depends on the slide-maker skill
 
@@ -281,6 +318,9 @@ logo/branding" failure mode this fixes.
 | Inspect a user `.pptx` → emit `profile.yaml` + `profile.md` | `scripts/inspect_and_profile.py` |
 | Load `profile.yaml` into build-time color/font constants (no hand-copied hex) | `scripts/load_profile.py` |
 | Reusable deck helpers (set_title / num_circle / chap / card / notes), colors from profile | `scripts/deck_helpers.py` |
+| **Narrative beat helper** (`beat(slide, point, carried_from, leads_to)` — writes 承上/本页/启下 into every page's notes) | `scripts/deck_helpers.py` |
+| **Narrative-role scaffold** (`new_deck.py` emits 封面→钩子·纠偏→关键发现→定位→深入→战略→追问→应对→结论→附录, no more `内容页N`) | `scripts/new_deck.py` |
+| **Storyline contract** (`storyline` block in brief.yaml: arc/peak/beats + 承上启下 per page; drives design gate + scaffold) | `scripts/brief.py`; `references/deck-reference-layout.md` §页型编排骨架 |
 | **Designed cover** (`cover()`, band/hero styles, gradient, no template logo) | `scripts/deck_helpers.py` |
 | **Strip template branding** (`strip_branding()`, removes inherited logo pics + copyright footers) | `scripts/deck_helpers.py` |
 | **Content page-type helpers** (`quad_grid` 2×2 / `steps3` 三步走 / `code_card` 左文右代码 / `text_right_card` 左文右图) | `scripts/deck_helpers.py` |

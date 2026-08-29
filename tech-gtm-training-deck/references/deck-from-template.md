@@ -64,6 +64,24 @@ Record the design plan, mirroring slide-maker's design checkpoint, in a
   drawing it as a diagram, not a text list.** A page that reads as "5 rows of
   concept-name + description" is a missed diagram. See "The text-list-where-a-diagram-
   belongs" failure mode below.
+- `storyline` — the **narrative contract**: `arc` (the beat order this deck follows,
+  e.g. `纠偏→关键发现→定位→深入→战略→追问→应对→收尾`), `peak` (which slide is the
+  signature-move peak, e.g. `6`), and `per_page` mapping `{page: {role, takeaway, leads_to}}`.
+  This is the deck's "why this order" — commit to it at the design gate so the build
+  doesn't drift into a page-N checklist. Every **content** slide must carry a
+  `role` here; the cover/agenda/conclusion/appendix are structural.
+
+### 2.5 Narrative self-check (before rendering)
+At the design gate, verify the deck is a story, not a stack:
+- Every content slide has a `role` in `storyline.per_page`; none is a bare "page N".
+- No two **adjacent** slides share the same page-type (don't run 4-card → 4-card → 4-card).
+- Every slide's speaker notes open with 承上→本页→启下 (use `deck_helpers.beat(…)`);
+  if a page can't say what it's leading into, it's a loose end — fix the arc, not the copy.
+- The `peak` slide is **led into and out of**: the page before sets up the mechanism and
+  the page after draws its implication. A signature move with no pre-roll or follow-through
+  is decoration.
+- **Reduction test**: if you removed the `peak` slide, the core argument should no longer
+  be fully explainable. If the story still survives, the peak isn't doing its job.
 
 ### 3. Build (via slide-maker's deckkit, colors from profile)
 Use `templates/build_skeleton.py` as the starting point — it reads `profile.yaml`
@@ -81,7 +99,7 @@ reusable helpers from `scripts/deck_helpers.py`:
 The build rhythm (proven, theme-independent): `dk.open_template(TPL)` → **`strip_branding(prs)`** (clear the template's inherited logo + copyright footers — see the "inherited template logo/branding" failure mode below) → **`cover(prs, D, subject, subtitle, meta, style=)`** for the designed cover (not bare placeholder-filling) → per content slide `add_slide(layout_idx)` → `set_title` → `dk.columns/rows/content_band` to get the
 safe rect → `card` + `dk.text` + `num_circle` + `dk.bottom_callout` (or a page-type helper:
 `quad_grid`/`steps3`/`code_card`/`text_right_card`) → optional
-`Build.step()` for appear-builds on multi-step slides → `notes` (speaker script) →
+`Build.step()` for appear-builds on multi-step slides → `notes` / **`beat`** (speaker script — every single page opens with 承上→本页→启下 so the deck connects) →
 `dk.lint_layout(prs, strict=True)` → `prs.save(OUT)`.
 
 **Page-type helpers** (in `scripts/deck_helpers.py`, abstracted from real template
