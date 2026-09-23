@@ -324,6 +324,7 @@ logo/branding" failure mode this fixes.
 | **Designed cover** (`cover()`, band/hero styles, gradient, no template logo) | `scripts/deck_helpers.py` |
 | **Strip template branding** (`strip_branding()`, removes inherited logo pics + copyright footers) | `scripts/deck_helpers.py` |
 | **Content page-type helpers** (`quad_grid` 2×2 / `steps3` 三步走 / `code_card` 左文右代码 / `text_right_card` 左文右图) | `scripts/deck_helpers.py` |
+| **Diagram type selection** (内容形态→图类型判别表 + user-flow recipe + 标准符号;有分支/决策/多角色用决策流程图 NOT steps3) | `references/diagram-types.md` |
 | Layered architecture diagram helper (`arch_layers`) | `scripts/deck_helpers.py` |
 | Network topology diagram helper (`network_topo`, with built-in `assets/icons/`) | `scripts/deck_helpers.py` |
 | Template pool (multi-style `.pptx`) + resolve `template` field (`auto`/style-name/`builtin:`/path/`none`) | `scripts/template_pool.py` |
@@ -385,3 +386,16 @@ arch_layers(s, layers, x=0.4, y=1.2, w=12.5, total_h=5.6,
   画法后,必须生成真实 `.pptx` → LibreOffice 转 PNG → 肉眼核对色带/箭头/侧栏/
   中文位置正确。曾出现"测试全过但箭头穿过组件"的视觉 bug,只有渲染看图才发现。
   见 `tests/test_arch_layers.py` 末尾 `test_arch_layers_ksyun_full_combo_renders`。
+
+### Figure helpers — when NOT to use them (内容形态 → 图类型)
+
+`arch_layers` 和 `network_topo` 只覆盖**两种**图(分层架构、网络拓扑)。其余内容形态——
+**用户流程/决策流、时序、状态机、数据管道、前后对比、循环**——的选型和画法见
+`references/diagram-types.md`。
+
+**关键判别**:内容有**分支/决策点**(if-else、成功失败、`?local=1 走本地`)或**多角色各走各路径**
+时,用**决策流程图**(deckkit `dk.node(shape="diamond")` 决策 + `shape="roundrect"` 起止 +
+`connect_boxes` 主线 + 失败分支去终止节点),**NOT `steps3`**——`steps3` 是线性三列说明,
+画不出分支、决策菱形、起止、泳道,把流程内容压成三段会丢掉「流程」的灵魂。判别口诀和拼装
+样板见 `diagram-types.md` §user-flow-recipe(引用 slide-maker 的 `design-gallery.md:157-174`
+recipe + 标准符号,不重造)。
