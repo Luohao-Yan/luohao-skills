@@ -79,3 +79,71 @@ def test_arch_layers_ksyun_full_combo_renders():
     centers = arch_layers(s, layers, style="ksyun", sidebar=True,
                           show_arrows=True, total_h=5.2)
     assert len(centers) == 4
+
+
+# ---- 层间分隔(gap):修截图 bug——6 层色带无 gap 首尾相连糊成一坨 ----
+_IN = 914400
+def _bands(slide):
+    """取出 arch_layers 画的层色带(全宽、有 fill 的圆角 box),按 top 排序。
+    色带高度 = 层 h(>=0.5),组件块矮(<=0.3);按高度筛色带。"""
+    bands = []
+    for sh in slide.shapes:
+        try:
+            if sh.shape_type is None:
+                continue
+            top = sh.top / _IN; h = sh.height / _IN; w = sh.width / _IN
+            left = sh.left / _IN
+            if h >= 0.5 and w >= 6.0:   # 色带宽(全宽),组件块窄且矮
+                bands.append((top, h, left, w))
+        except Exception:
+            continue
+    return sorted(bands)
+
+def test_arch_layers_bands_have_gap_between_them():
+    """相邻层色带不能首尾相连——下层 top 必须严格大于上层 bottom(留可见分隔)。
+    这是截图 P5 的 bug:6 层无 gap,色带接缝处圆角交错看起来重叠糊成一坨。"""
+    prs = make_test_prs(); s = blank_slide(prs)
+    layers = [{"name": f"L{i}", "items": [f"c{i}1", f"c{i}2"], "height": 0.7}
+              for i in range(6)]
+    arch_layers(s, layers, x=0.4, y=1.25, w=12.5, total_h=5.6)
+    bands = _bands(s)
+    assert len(bands) == 6, "应画出 6 条层色带,实际 %d" % len(bands)
+    # 相邻层:下一层 top > 上一层 bottom(有 gap)
+    for i in range(len(bands) - 1):
+        top_i, h_i, _, _ = bands[i]
+        top_next, _, _, _ = bands[i + 1]
+        bottom_i = top_i + h_i
+        assert top_next > bottom_i, \
+            "层 %d 与 %d 首尾相连(无分隔): 上层 bottom=%.3f, 下层 top=%.3f" % (
+                i, i + 1, bottom_i, top_next)
+
+def test_arch_layers_gap_param_controls_separation():
+    """gap 参数显式控制层间距:gap=0.3 比 gap=0.1 分隔更大。"""
+    def band_gap(gap_val):
+        prs = make_test_prs(); s = blank_slide(prs)
+        layers = [{"name": f"L{i}", "items": ["a"], "height": 0.8} for i in range(3)]
+        arch_layers(s, layers, gap=gap_val, total_h=4.0)
+        bands = _bands(s)
+        return bands[1][0] - (bands[0][0] + bands[0][1])   # 层0底到层1顶的距离
+    assert band_gap(0.3) > band_gap(0.1) + 0.1   # 0.3 的间距明显大于 0.1
+
+def test_arch_layers_default_gap_is_nonzero():
+    """不传 gap 也要有默认分隔(修 bug 的默认行为),不能退化成首尾相连。"""
+    prs = make_test_prs(); s = blank_slide(prs)
+    layers = [{"name": f"L{i}", "items": ["a"], "height": 0.8} for i in range(3)]
+    arch_layers(s, layers, total_h=4.0)
+    bands = _bands(s)
+    assert len(bands) == 3
+    for i in range(2):
+        bottom = bands[i][0] + bands[i][1]
+        assert bands[i + 1][0] > bottom, "默认 gap 仍首尾相连(未修)"
+
+def test_arch_layers_gap_zero_back_to_touching():
+    """gap=0 允许首尾相连(向后兼容:有人就是要无缝分层)。"""
+    prs = make_test_prs(); s = blank_slide(prs)
+    layers = [{"name": f"L{i}", "items": ["a"], "height": 0.8} for i in range(3)]
+    arch_layers(s, layers, gap=0, total_h=4.0)
+    bands = _bands(s)
+    for i in range(2):
+        bottom = round(bands[i][0] + bands[i][1], 3)
+        assert round(bands[i + 1][0], 3) == bottom, "gap=0 应首尾相连"

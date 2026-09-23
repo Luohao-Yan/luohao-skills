@@ -184,13 +184,16 @@ ARCH_SIDEBAR_DEFAULT = [
 
 def arch_layers(slide, layers, x=0.4, y=1.4, w=12.5, total_h=5.2,
                 style="colored", accent=None, font=None,
-                sidebar=None, show_arrows=False):
+                sidebar=None, show_arrows=False, gap=0.2):
     """分层架构图。layers=[{name,items:[...],height,color?},...]。
     style: colored(多彩分层)/ mono(单色分层)/ ksyun(金山云红,公文正式)。
     accent: 组件描边主色;None 时按 style 推导(colored/mono=藏青, ksyun=金山云红)。
     sidebar: 右侧安全合规侧栏。True=用 ARCH_SIDEBAR_DEFAULT;list=自定义条目;None=不画。
        侧栏占宽 1.6 inch,主图自动收窄到 w-1.7。
     show_arrows: 画层间自下而上支撑箭头(默认 False;政务架构图常加)。
+    gap: 层间分隔间距(英寸),默认 0.2。修「6 层色带首尾相连糊成一坨」的 bug——
+       之前 cur_y += h 零间隙,色带接缝处圆角交错看起来重叠。0.2 在政务架构图上分隔醒目
+       且不触发 lint 的 SLIVER_GAP;gap=0 退回无缝(向后兼容)。
     返回各层中心点 [(cx,cy),...](供后续连线)。
     画法:每层一条全宽色带(L=x,W=w,浅色),层名左上,层内组件块横向并排(白底+accent描边)。
     超过6层:自动压缩高度并 print 提示建议拆页。"""
@@ -217,7 +220,9 @@ def arch_layers(slide, layers, x=0.4, y=1.4, w=12.5, total_h=5.2,
         tints_cycle = ARCH_TINTS if style == "colored" else [ARCH_MONO_TINT]
 
     sum_h = sum(L.get("height", 0.8) for L in layers)
-    scale = total_h / sum_h if sum_h > total_h else 1.0
+    # gap 也占垂直空间:总占用 = sum_h + gap*(n-1);超出 total_h 才压缩
+    total_used = sum_h + gap * (n - 1) if n > 1 else sum_h
+    scale = total_h / total_used if total_used > total_h else 1.0
     ink = RGBColor(0x2A, 0x2A, 0x33)
     ea = font or dk.EAFONT
     cy_list = []
@@ -236,19 +241,19 @@ def arch_layers(slide, layers, x=0.4, y=1.4, w=12.5, total_h=5.2,
             pad = 0.16
             inner_x = x + 2.6
             inner_w = main_w - 2.6 - pad
-            gap = 0.12
-            cw = (inner_w - gap * (len(items) - 1)) / len(items)
+            gap_it = 0.12
+            cw = (inner_w - gap_it * (len(items) - 1)) / len(items)
             ch = min(0.28, h - 0.16)
             comp_y = cur_y + (h - ch) / 2
             for j, it in enumerate(items):
-                cx = inner_x + j * (cw + gap)
+                cx = inner_x + j * (cw + gap_it)
                 dk.box(slide, cx, comp_y, cw, ch, fill=ARCH_COMPONENT_FILL,
                        line=accent, line_w=1.0, round=True, r=0.05)
                 dk.text(slide, cx, comp_y, cw, ch,
                         [[(it, 10.5, ink, False, False, ea)]],
                         align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, wrap=False)
         cy_list.append((x + main_w / 2, cur_y + h / 2))
-        cur_y += h
+        cur_y += h + gap   # 层间留 gap 分隔(修零间隙糊成一坨)
 
     # --- 层间自下而上支撑箭头 ---
     if show_arrows and len(cy_list) >= 2:
