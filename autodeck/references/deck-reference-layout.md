@@ -46,7 +46,7 @@
 | 7 | 大白话概念图（插座/容器比喻） | 深入·比喻 | 中央大容器（anchor 描边）+ N 插槽 | 承接定位带来的疑问 | 把比喻推向机制本体 |
 | 8 | 分层堆叠图（竖向卡片 + 向下箭头） | 深入·机制 | 每层色条，层间 `dk.arrow(down)` | 承接大白话比喻 | 推向 signature move 峰值 |
 | 9 | **signature move（插槽 → N provider 卡）** | **深入·峰值** | 左深色插槽（emphasis 标）→ 红箭头 → 右 N 卡，默认那张高亮 | 前面整条深入链在此收束成几何 | 把"机制可信"推向"我们能做什么" |
-| 10 | 编号步骤（numbered-steps） | 落地·路径 | 编号渐变圆（anchor→comparator）+ 卡片，appear-build | 承接峰值机制 | 预判听众的第一个追问 |
+| 10 | 编号步骤（numbered-steps） | 落地·路径 | 编号渐变圆（anchor→comparator）+ 卡片，appear-build。**仅限纯线性无分支**；有分支/决策/多角色 → 决策流程图（见 `diagram-types.md`） | 承接峰值机制 | 预判听众的第一个追问 |
 | 11 | 追问双栏（支持/存疑） | 追问·存疑 | 左「支持」(绿) / 右「存疑」(橙)，底部结论 callout | 承接落地路径的不确定点 | 把异议一次性问完再收 |
 | 12 | 建议编号（5-row） | 应对·行动 | 编号圆 + 卡片，底部口径行 neutral | 承接追问给到的边界 | 回到最初那句承诺做总结 |
 | 13 | 结论页（red_conclusion） | 收尾·结论 | 主色底 + emphasis 金句 | 承接应对路径 | （结束）附上证据出处 |
@@ -82,6 +82,8 @@
 | 左文右图/架 | `text_right_card(slide, D, …, right_title, right_body)` | 场景 + 方案，右卡可换 `arch_layers` |
 | 分层架构 | `arch_layers(slide, layers)` | 全宽色带分层 + 组件块 |
 | 网络拓扑 | `network_topo(slide, nodes, links)` | 图标节点 + 边到边连线 |
+| **用户流程/决策流** | **deckkit recipe (`node`+`connect_boxes`+`diamond`)** | **有分支/决策/多角色时用，NOT steps3；见 `diagram-types.md` §user-flow-recipe** |
+| 时序/状态机/管道 | deckkit recipe (`node` 生命线 / `flow_chain`) | 见 `diagram-types.md` 对照表 |
 
 > 这些 helper 抽自真实模板页骨架（如记忆培训 deck 的 slide7 四宫格 / slide22 三步走 / slide16 代码卡），不是凭空设计——照真实页型复刻，配色随 profile 变。
 

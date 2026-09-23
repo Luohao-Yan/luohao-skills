@@ -306,6 +306,12 @@ Rule of thumb: **if a reader could redraw the relationships from your slide, you
 a diagram; if they can only read the items, you drew a list.** Training decks that
 explain an architecture must pass the redraw test on the architecture slides.
 
+> **选哪种图?** 见 `references/diagram-types.md` 的「内容形态→图类型」判别决策树 + 对照表。
+> 尤其:有**分支/决策/多角色**的内容(用户流程、SSO 登录有 `?local=1` 分支)用**决策流程图**
+> (deckkit `dk.node(shape="diamond")` 决策 + `shape="roundrect"` 起止 + `connect_boxes` 连线),
+> **不要用 `steps3` 线性三步**——它画不出分支和泳道。拼装样板和两个 deckkit 坑(泳道不能
+> fill、失败分支去终止节点别用 loop_path)见 `diagram-types.md` §user-flow-recipe。
+
 ## The inherited template logo/branding (a real failure mode)
 
 `dk.open_template` keeps the template's **masters + layouts** (it only deletes slides) —
