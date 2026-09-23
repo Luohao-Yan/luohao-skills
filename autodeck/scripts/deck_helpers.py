@@ -308,48 +308,95 @@ def _icon_path(kind):
     p = os.path.join(os.path.dirname(here), "assets", "icons", f"{kind}.png")
     return p if os.path.isfile(p) else None
 
+def _luminance(color):
+    """RGBColor -> 相对亮度(0..1)。用于判断 disc 底色深浅,决定图标用白还是深。
+    用 ITU-R BT.601 加权(人眼对绿敏感):0.299R+0.587G+0.114B,归一化到 0..1。"""
+    return (0.299 * color[0] + 0.587 * color[1] + 0.114 * color[2]) / 255.0
+
+def _icon_for_disc(kind, disc_color):
+    """按 disc 底色亮度选图标:深底(<0.5)用白色图标 _white.png,浅底用原深色图标 .png。
+    修「红 disc + 深藏青图标对比差」——让图标随容器底色自适应。白图标缺失则退回原版。"""
+    here = os.path.dirname(os.path.abspath(__file__))
+    icons = os.path.join(os.path.dirname(here), "assets", "icons")
+    if _luminance(disc_color) < 0.5:
+        white = os.path.join(icons, f"{kind}_white.png")
+        if os.path.isfile(white):
+            return white
+    p = os.path.join(icons, f"{kind}.png")
+    return p if os.path.isfile(p) else None
+
 def network_topo(slide, nodes, links, x=0.5, y=1.4, w=12.3, h=5.3,
                  accent=None, font=None, icon_size=0.5):
     """网络拓扑图。nodes=[{id,kind,x,y,label,sub?}] (x,y 为 0..1 相对坐标);
     links=[{from,to,label?,style?,arrow?}]。
-    用 deckkit connect_boxes 边到边精准连线(不穿节点);图标从 assets/icons/<kind>.png 读,
-    缺失则降级为形状节点(圆角矩形+kind 文字)。颜色/字体从 accent/font 来。
-    返回 {id: ((cx,cy), rect)} 供外部追加连线。"""
+    节点 = disc 圆盘(accent 色)+ 图标(随 disc 亮度自适应白/深)+ 下方标签。连线用
+    deckkit connect_boxes 边到边连到 **disc rect**(小,不重叠),不被节点盖住。
+    图标缺失则降级为圆角矩形 + kind 文字。颜色/字体从 accent/font 来。
+    返回 {id: ((cx,cy), rect)} 供外部追加连线(rect 为 disc rect)。
+
+    修两个 bug:
+    - 连线被盖:之前用 nw=1.1/nh=1.0 大概念框算连线端点,但只画 0.5 disc,连线连到「不存在
+      的大框」边→端点落进相邻 disc 区被盖、线段极短。改用 disc rect(icon_size×icon_size)连线。
+    - 图标对比:内置图标全深藏青固定色,红 disc 上对比差。按 disc 亮度选 _white.png / .png。"""
     accent = accent or RGBColor(0x3F, 0x54, 0x69)
     ea = font or dk.EAFONT
     ink = RGBColor(0x2A, 0x2A, 0x33)
-    # 节点尺寸(图标 + 标签)
-    nw, nh = icon_size + 0.6, icon_size + 0.5
-    rects = {}
-    # 1. 先算所有节点 rect(供连线),再画连线(画在节点下),再画节点(盖上)
+    # disc rect = icon_size×icon_size(小,连线连到这,不被盖)。标签在 disc 下方独立。
+    dw = dh = icon_size
+    label_h = 0.30   # 标签区高
+    rects = {}       # id -> disc rect (连线用)
+    labels = {}      # id -> 标签 textbox 位置
+    # 1. 算 disc rect(连线用)+ 标签位置。disc 在节点相对坐标处,标签在 disc 正下方。
     for nd in nodes:
-        nx = x + nd["x"] * (w - nw)
-        ny = y + nd["y"] * (h - nh)
-        rects[nd["id"]] = (nx, ny, nw, nh)
-    # 2. 连线(z-order: 先连线)
+        dx = x + nd["x"] * (w - dw)
+        dy = y + nd["y"] * (h - dh - label_h)
+        rects[nd["id"]] = (dx, dy, dw, dh)
+        # 标签放 disc 下方紧贴(0.04)。连线 label 自己画到连线侧边(不居中),不与节点标签抢
+        # disc 间隙,避免 TEXT_OVERLAP。
+        labels[nd["id"]] = (dx - 0.3, dy + dh + 0.04, dw + 0.6, label_h)
+    # 2. 连线(z-order: 先连线,连到 disc rect 边)。label 不交给 deckkit(它画在中点会与
+    #    居中的节点标签撞,间隙塞不下两者),由本函数画到连线侧边避让。
     for lk in links:
         a = rects[lk["from"]]; b = rects[lk["to"]]
         kw = {"style": lk.get("style","solid"), "color": accent, "width": 1.4,
-              "label": lk.get("label",""), "arrow": lk.get("arrow", True)}
+              "label": "", "arrow": lk.get("arrow", True)}
         dk.connect_boxes(slide, a, b, **kw)
-    # 3. 节点(z-order: 后画,盖住连线 seam)
+        lbl = lk.get("label", "")
+        if lbl:
+            # 连线中点;节点标签居中 disc 宽 ~dw+0.6。竖线 label 偏移到 disc 右缘外(x 完全
+            # 离开节点标签区间),横线 label 放上方(y 分离)。只须 x 或 y 之一不重叠即可避 TEXT_OVERLAP。
+            mx = (a[0] + a[2]/2 + b[0] + b[2]/2) / 2
+            my = (a[1] + a[3]/2 + b[1] + b[3]/2) / 2
+            vertical = abs((b[1]+b[3]/2) - (a[1]+a[3]/2)) > abs((b[0]+b[2]/2) - (a[0]+a[2]/2))
+            if vertical:
+                # 竖线:label 放到 disc 右缘外(mx + 0.6),x 离开居中的节点标签
+                dk.text(slide, mx + 0.6, my - 0.13, 0.9, 0.26,
+                        [[(lbl, 9, accent, False, False, dk.FONT)]], wrap=False)
+            else:
+                # 横线:label 放连线上方,y 与 disc 下方的节点标签分离
+                dk.text(slide, mx - 0.45, my - 0.42, 0.9, 0.26,
+                        [[(lbl, 9, accent, False, False, dk.FONT)]],
+                        align=PP_ALIGN.CENTER, wrap=False)
+    # 3. 节点(z-order: 后画 disc + 图标,盖住连线端点 seam)
     for nd in nodes:
-        nx, ny, nw2, nh2 = rects[nd["id"]]
-        ip = _icon_path(nd["kind"])
+        dx, dy, dw2, dh2 = rects[nd["id"]]
+        ip = _icon_for_disc(nd["kind"], accent)
         if ip:
-            dk.icon(slide, ip, nx + (nw2 - icon_size)/2, ny + 0.06, icon_size, disc=accent)
+            dk.icon(slide, ip, dx, dy, icon_size, disc=accent)
         else:
-            # 降级:圆角矩形 + kind 文字
-            dk.box(slide, nx, ny, nw2, nh2, fill=RGBColor(0xFF,0xFF,0xFF),
+            # 降级:圆角矩形 + kind 文字(无图标)
+            dk.box(slide, dx, dy, dw2, dh2, fill=RGBColor(0xFF,0xFF,0xFF),
                    line=accent, line_w=1.2, round=True, r=0.08)
-            dk.text(slide, nx, ny+0.02, nw2, 0.3,
+            dk.text(slide, dx, dy+0.02, dw2, 0.3,
                     [[(nd["kind"], 9, accent, True, False, ea)]],
-                    align=PP_ALIGN.CENTER, wrap=False)
-        # 标签(图标下方)
-        dk.text(slide, nx, ny + nh2 - 0.26, nw2, 0.24,
+                    align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, wrap=False)
+        # 标签(disc 下方,独立 textbox;wrap=True 防长标签溢出 box 撞连线 label)
+        lx, ly, lw, lh = labels[nd["id"]]
+        dk.text(slide, lx, ly, lw, lh,
                 [[(nd.get("label",""), 10, ink, True, False, ea)]],
-                align=PP_ALIGN.CENTER, wrap=False)
+                align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.TOP, wrap=True)
     return {nid: ((r[0]+r[2]/2, r[1]+r[3]/2), r) for nid, r in rects.items()}
+
 
 
 # ---- 封面 (cover) ----
